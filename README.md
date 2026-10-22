@@ -65,17 +65,8 @@ set -a; . ./.env; set +a; node server.js
 
 `docker compose` **membaca `.env` sendiri** — lihat bagian [Docker](#docker).
 
-### Akun demo
 
-| Username | Password | Peran |
-| --- | --- | --- |
-| `operator` | `operator` | operator |
-| `pm` | `pm` | project manager |
-| `approver` | `approver` | approver |
-| `auditor` | `auditor` | auditor (read-only) |
 
-**Ganti password sebelum dipakai di luar laptop pengembangan.** Belum ada endpoint/UI manajemen
-pengguna; prosedurnya ada di [Mengganti password](#mengganti-password) di bawah.
 
 ### Login tanpa UI (sementara)
 
