@@ -1,5 +1,7 @@
 'use strict';
 
+process.env.DATA_DIR = require('node:path').join(__dirname, '..', 'data', 'test-domain');
+
 const assert = require('node:assert');
 const test = require('node:test');
 const { gateGaps, validateProjectInput, ApiError, FR_DELIVERABLES, BUFFER_CHECKS } = require('../lib/domain');

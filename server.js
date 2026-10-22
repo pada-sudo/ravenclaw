@@ -5,14 +5,18 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 require('./lib/db');
-const { buildRoutes } = require('./lib/routes');
+const { buildRoutes, resFor } = require('./lib/routes');
 const { FR_DELIVERABLES, BUFFER_CHECKS, ApiError } = require('./lib/domain');
-const { db, withTx, logEvent, now } = require('./lib/db');
+const { db, withTx, logEvent, now, s } = require('./lib/db');
+const {
+  getRequestId, securityHeaders, requireSameOrigin,
+  rateLimiter,
+} = require('./lib/security');
+const { sessionFromRequest, cleanupExpiredSessions } = require('./lib/auth');
 
 const PORT = Number(process.env.PORT || 3000);
 const PUBLIC = path.join(__dirname, 'public');
-
-const routes = buildRoutes();
+const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -22,6 +26,8 @@ const MIME = {
   '.png': 'image/png',
   '.ico': 'image/x-icon',
 };
+
+const routes = buildRoutes();
 
 function serveStatic(res, urlPath) {
   let rel = urlPath === '/' ? '/index.html' : urlPath;
@@ -34,16 +40,6 @@ function serveStatic(res, urlPath) {
   const ext = path.extname(target).toLowerCase();
   res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
   fs.createReadStream(target).pipe(res);
-}
-
-const rateMap = new Map();
-function rateLimited(ip) {
-  const t = Date.now();
-  const e = rateMap.get(ip) || { c: 0, reset: t + 60000 };
-  if (t > e.reset) { e.c = 0; e.reset = t + 60000; }
-  e.c += 1;
-  rateMap.set(ip, e);
-  return e.c > 240;
 }
 
 function readBody(req) {
@@ -64,38 +60,28 @@ function readBody(req) {
   });
 }
 
-const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-  const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
-  try {
-    if (req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE') {
-      if (rateLimited(ip)) throw new ApiError(429, 'Terlalu banyak permintaan, coba lagi nanti');
-    }
-    if (url.pathname.startsWith('/api/')) {
-      for (const r of routes) {
-        if (r.method !== req.method) continue;
-        const m = url.pathname.match(r.rx);
-        if (!m) continue;
-        const params = {};
-        r.names.forEach((n, i) => { params[n] = decodeURIComponent(m[i + 1]); });
-        const body = (req.method === 'POST' || req.method === 'PUT') ? await readBody(req) : {};
-        const out = r.handler(params, url.searchParams, body, req);
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        return res.end(JSON.stringify(out));
-      }
-      throw new ApiError(404, 'Endpoint tidak ditemukan');
-    }
-    if (req.method !== 'GET') { res.writeHead(405); return res.end(); }
-    serveStatic(res, url.pathname);
-  } catch (err) {
-    const status = err instanceof ApiError ? err.status : 500;
-    if (status === 500) console.error('[error]', req.method, url.pathname, err);
-    const payload = { error: err.message || 'Kesalahan server' };
-    if (err instanceof ApiError && err.extra) Object.assign(payload, err.extra);
-    res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
-    res.end(JSON.stringify(payload));
+function writeJson(res, status, payload, isApi) {
+  securityHeaders(res, isApi);
+  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.end(JSON.stringify(payload));
+}
+
+function logRequest({ requestId, method, path, status, durationMs, actor, error }) {
+  if (LOG_LEVEL === 'silent') return;
+  const line = {
+    timestamp: now(),
+    request_id: requestId,
+    method,
+    path,
+    status,
+    duration_ms: durationMs,
+    actor: actor || 'anonymous',
+  };
+  if (error) {
+    line.error = error;
   }
-});
+  console.log(JSON.stringify(line));
+}
 
 function seed() {
   const count = db.prepare('SELECT COUNT(*) AS c FROM projects').get().c;
@@ -173,6 +159,77 @@ function seed() {
   }
 }
 seed();
+
+const server = http.createServer(async (req, res) => {
+  const requestId = getRequestId(req);
+  req._response = res;
+  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const started = Date.now();
+  let status = 200;
+  let actor = null;
+  let isApi = false;
+
+  try {
+    // Health check first, no auth required.
+    if (url.pathname === '/healthz') {
+      securityHeaders(res, true);
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      return res.end(JSON.stringify({ status: 'ok', timestamp: now() }));
+    }
+
+    // CSRF / origin check for mutating requests.
+    if (req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS') {
+      if (!requireSameOrigin(req)) {
+        throw new ApiError(403, 'Origin tidak diizinkan');
+      }
+    }
+
+    // Rate limit by authenticated identity or IP fallback.
+    const session = sessionFromRequest(req);
+    actor = session ? `${session.username}:${session.role}` : null;
+    if (rateLimiter.isLimited(req, actor)) {
+      throw new ApiError(429, 'Terlalu banyak permintaan, coba lagi nanti');
+    }
+
+    if (url.pathname.startsWith('/api/')) {
+      isApi = true;
+      for (const r of routes) {
+        if (r.method !== req.method) continue;
+        const m = url.pathname.match(r.rx);
+        if (!m) continue;
+        const params = {};
+        r.names.forEach((n, i) => { params[n] = decodeURIComponent(m[i + 1]); });
+        const body = (req.method === 'POST' || req.method === 'PUT') ? await readBody(req) : {};
+        const out = await Promise.resolve(r.handler(params, url.searchParams, body, req));
+        securityHeaders(res, true);
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        return res.end(JSON.stringify(out));
+      }
+      throw new ApiError(404, 'Endpoint tidak ditemukan');
+    }
+
+    if (req.method !== 'GET') { res.writeHead(405); return res.end(); }
+    serveStatic(res, url.pathname);
+  } catch (err) {
+    status = err instanceof ApiError ? err.status : 500;
+    const isServerError = status >= 500;
+    const message = isServerError ? 'Kesalahan server' : (err.message || 'Kesalahan');
+    const sessionForLog = sessionFromRequest(req);
+    const actorForLog = actor || (sessionForLog ? `${sessionForLog.username}:${sessionForLog.role}` : 'anonymous');
+    logRequest({ requestId, method: req.method, path: url.pathname, status, durationMs: Date.now() - started, actor: actorForLog, error: isServerError ? err.stack || err.message : undefined });
+    const payload = { error: message };
+    if (err instanceof ApiError && err.extra) Object.assign(payload, err.extra);
+    writeJson(res, status, payload, isApi || url.pathname === '/healthz');
+    return;
+  }
+  logRequest({ requestId, method: req.method, path: url.pathname, status, durationMs: Date.now() - started, actor });
+});
+
+// Periodic maintenance: expired sessions cleanup.
+setInterval(() => {
+  try { cleanupExpiredSessions(); }
+  catch (err) { console.error(JSON.stringify({ timestamp: now(), event: 'cleanup_failed', error: err.message })); }
+}, 300000);
 
 server.listen(PORT, () => {
   const addr = server.address();

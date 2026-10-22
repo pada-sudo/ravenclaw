@@ -1,6 +1,5 @@
 -- Migration 001: base schema
--- Note: server.js applies these programmatically via PRAGMA user_version.
--- Files in this folder serve as documented, reviewable artefacts.
+-- Applied by lib/db.js runMigrations() using PRAGMA user_version.
 
 CREATE TABLE IF NOT EXISTS projects (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -1,0 +1,31 @@
+services:
+  ddp-project-control:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ddp-project-control
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - PORT=3000
+      - DATA_DIR=/data
+      - SESSION_TTL_SECONDS=${SESSION_TTL_SECONDS:-28800}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS:-60000}
+      - RATE_LIMIT_MAX=${RATE_LIMIT_MAX:-120}
+      - COOKIE_SECURE=${COOKIE_SECURE:-false}
+      - TRUSTED_ORIGINS=${TRUSTED_ORIGINS:-}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      - ddp-sqlite:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('node:http').get('http://localhost:3000/healthz', (r) => { process.exit(r.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    user: "1001:1001"
+
+volumes:
+  ddp-sqlite:

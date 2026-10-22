@@ -1,9 +1,6 @@
 -- Migration 002: indexes, soft delete, required flags, and counters
-
-ALTER TABLE projects ADD COLUMN prev_gate TEXT DEFAULT '';
-ALTER TABLE projects ADD COLUMN deleted_at TEXT DEFAULT '';
-ALTER TABLE deliverables ADD COLUMN required INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE buffer_checks ADD COLUMN required INTEGER NOT NULL DEFAULT 0;
+-- Note: prev_gate, deleted_at, and required flags are already present in
+-- migration 001 in the current codebase. This file now only ensures indexes.
 
 CREATE INDEX IF NOT EXISTS idx_deliverables_project_id ON deliverables(project_id);
 CREATE INDEX IF NOT EXISTS idx_buffer_checks_project_id ON buffer_checks(project_id);

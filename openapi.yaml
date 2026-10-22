@@ -1,15 +1,101 @@
 openapi: 3.1.0
 info:
   title: DDP Project Control API
-  version: '2.0.0'
-  description: API kontrak untuk aplikasi DDP Project Control — backend oleh Bagas (stage 1).
+  version: '2.1.0'
+  description: API kontrak untuk aplikasi DDP Project Control — backend oleh Bagas (stage 1), auth/hardening oleh Victor (stage 2).
 servers:
   - url: http://localhost:3000
 paths:
+  /healthz:
+    get:
+      summary: Health check
+      operationId: getHealthz
+      security: []
+      responses:
+        '200':
+          description: Aplikasi sehat.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+                  timestamp: { type: string, format: date-time }
+  /api/auth/login:
+    post:
+      summary: Login
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: Login berhasil; cookie ddp_session di-set.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  user:
+                    type: object
+                    properties:
+                      username: { type: string }
+                      full_name: { type: string }
+                      role: { type: string, enum: [operator, pm, approver, auditor] }
+                  expires_at: { type: string, format: date-time }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimit' }
+  /api/auth/logout:
+    post:
+      summary: Logout
+      operationId: logout
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Logout berhasil; cookie dihapus.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+  /api/auth/session:
+    get:
+      summary: Sesi pengguna saat ini
+      operationId: getSession
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Informasi pengguna yang sedang login.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+                    properties:
+                      username: { type: string }
+                      full_name: { type: string }
+                      role: { type: string, enum: [operator, pm, approver, auditor] }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /api/kpis:
     get:
       summary: KPI dashboard
       operationId: getKpis
+      security:
+        - sessionCookie: []
       responses:
         '200':
           description: Ringkasan KPI dan daftar blocker terbuka.
@@ -17,10 +103,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Kpis'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimit' }
   /api/projects:
     get:
       summary: Daftar proyek
       operationId: listProjects
+      security:
+        - sessionCookie: []
       parameters:
         - in: query
           name: track
@@ -50,9 +141,14 @@ paths:
                 properties:
                   data: { type: array, items: { $ref: '#/components/schemas/ProjectListItem' } }
                   pagination: { $ref: '#/components/schemas/Pagination' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimit' }
     post:
       summary: Intake proyek baru
       operationId: createProject
+      security:
+        - sessionCookie: []
       requestBody:
         required: true
         content:
@@ -70,12 +166,16 @@ paths:
                   id: { type: integer }
                   code: { type: string }
                   procurement: { $ref: '#/components/schemas/ProcurementInfo' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '422': { $ref: '#/components/responses/ValidationError' }
         '429': { $ref: '#/components/responses/RateLimit' }
   /api/projects/{id}:
     get:
       summary: Detail proyek lengkap
       operationId: getProject
+      security:
+        - sessionCookie: []
       parameters:
         - in: path
           name: id
@@ -88,10 +188,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProjectDetail'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
     put:
       summary: Perbarui data proyek
       operationId: updateProject
+      security:
+        - sessionCookie: []
       parameters:
         - in: path
           name: id
@@ -109,11 +213,16 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Project' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimit' }
     delete:
       summary: Hapus (soft delete) proyek
       operationId: deleteProject
+      security:
+        - sessionCookie: []
       parameters:
         - in: path
           name: id
@@ -129,11 +238,16 @@ paths:
                 properties:
                   ok: { type: boolean }
                   deleted: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimit' }
   /api/projects/{id}/advance:
     post:
       summary: Naikkan gate
       operationId: advanceGate
+      security:
+        - sessionCookie: []
       parameters:
         - in: path
           name: id
@@ -158,12 +272,17 @@ paths:
                   next: { type: string }
                   forced: { type: boolean }
                   gaps: { type: array, items: { type: string } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimit' }
   /api/projects/{id}/close:
     post:
       summary: Tandai proyek selesai
       operationId: closeProject
+      security:
+        - sessionCookie: []
       parameters:
         - in: path
           name: id
@@ -180,11 +299,16 @@ paths:
                   ok: { type: boolean }
                   gate: { type: string }
                   status: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimit' }
   /api/projects/{id}/reopen:
     post:
       summary: Buka kembali proyek
       operationId: reopenProject
+      security:
+        - sessionCookie: []
       parameters:
         - in: path
           name: id
@@ -201,11 +325,16 @@ paths:
                   ok: { type: boolean }
                   gate: { type: string }
                   status: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimit' }
   /api/projects/{id}/gate_notes/{gate}:
     put:
       summary: Catatan proses gate
       operationId: putGateNote
+      security:
+        - sessionCookie: []
       parameters:
         - in: path
           name: id
@@ -232,12 +361,17 @@ paths:
                 type: object
                 properties:
                   ok: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimit' }
   /api/projects/{id}/deliverables:
     post:
       summary: Tambah deliverable
       operationId: addDeliverable
+      security:
+        - sessionCookie: []
       parameters:
         - in: path
           name: id
@@ -255,11 +389,16 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Deliverable' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimit' }
   /api/projects/{id}/deliverables/{did}:
     put:
       summary: Update deliverable
       operationId: updateDeliverable
+      security:
+        - sessionCookie: []
       parameters:
         - in: path
           name: id
@@ -280,11 +419,16 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Deliverable' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimit' }
     delete:
       summary: Hapus deliverable
       operationId: deleteDeliverable
+      security:
+        - sessionCookie: []
       parameters:
         - in: path
           name: id
@@ -303,12 +447,17 @@ paths:
                 type: object
                 properties:
                   ok: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimit' }
   /api/projects/{id}/buffer_checks:
     post:
       summary: Tambah prasyarat Buffer
       operationId: addBufferCheck
+      security:
+        - sessionCookie: []
       parameters:
         - in: path
           name: id
@@ -331,11 +480,16 @@ paths:
                 type: object
                 properties:
                   ok: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimit' }
   /api/projects/{id}/buffer_checks/{cid}:
     put:
       summary: Update prasyarat Buffer
       operationId: updateBufferCheck
+      security:
+        - sessionCookie: []
       parameters:
         - in: path
           name: id
@@ -356,11 +510,16 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/BufferCheck' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimit' }
     delete:
       summary: Hapus prasyarat Buffer
       operationId: deleteBufferCheck
+      security:
+        - sessionCookie: []
       parameters:
         - in: path
           name: id
@@ -379,12 +538,17 @@ paths:
                 type: object
                 properties:
                   ok: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimit' }
   /api/projects/{id}/reports:
     post:
       summary: Simpan weekly report
       operationId: addReport
+      security:
+        - sessionCookie: []
       parameters:
         - in: path
           name: id
@@ -405,11 +569,16 @@ paths:
                 type: object
                 properties:
                   ok: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimit' }
   /api/reports/{rid}/confirm:
     put:
       summary: Konfirmasi weekly report oleh PM
       operationId: confirmReport
+      security:
+        - sessionCookie: []
       parameters:
         - in: path
           name: rid
@@ -431,11 +600,16 @@ paths:
                 type: object
                 properties:
                   ok: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimit' }
   /api/projects/{id}/risks:
     post:
       summary: Tambah item RAID
       operationId: addRisk
+      security:
+        - sessionCookie: []
       parameters:
         - in: path
           name: id
@@ -456,11 +630,16 @@ paths:
                 type: object
                 properties:
                   ok: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimit' }
   /api/risks/{rid}:
     put:
       summary: Update status/item RAID
       operationId: updateRisk
+      security:
+        - sessionCookie: []
       parameters:
         - in: path
           name: rid
@@ -480,11 +659,16 @@ paths:
                 type: object
                 properties:
                   ok: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimit' }
   /api/projects/{id}/changes:
     post:
       summary: Ajukan change request
       operationId: addChangeRequest
+      security:
+        - sessionCookie: []
       parameters:
         - in: path
           name: id
@@ -505,11 +689,16 @@ paths:
                 type: object
                 properties:
                   ok: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimit' }
   /api/changes/{cid}:
     put:
       summary: Keputusan change request
       operationId: updateChangeRequest
+      security:
+        - sessionCookie: []
       parameters:
         - in: path
           name: cid
@@ -531,12 +720,17 @@ paths:
                 type: object
                 properties:
                   ok: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimit' }
   /api/meta:
     get:
       summary: Metadata domain
       operationId: getMeta
+      security:
+        - sessionCookie: []
       responses:
         '200':
           description: Enum, gate sequence, daftar deliverable/checklist wajib.
@@ -544,7 +738,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Meta'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimit' }
 components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: ddp_session
   responses:
     NotFound:
       description: Resource tidak ditemukan.
@@ -566,6 +768,22 @@ components:
               gaps: { type: array, items: { type: string } }
     RateLimit:
       description: Rate limit terlampaui.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string }
+    Unauthorized:
+      description: Autentikasi diperlukan.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string }
+    Forbidden:
+      description: Akses ditolak.
       content:
         application/json:
           schema:
