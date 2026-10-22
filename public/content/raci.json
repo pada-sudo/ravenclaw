@@ -1,0 +1,12 @@
+{
+  "title": "RACI Ringkas (usulan)",
+  "note": "Accountable/approver wajib dikonfirmasi dengan matriks kewenangan resmi.",
+  "rows": [
+    { "activity": "NDE & kebutuhan resource", "responsible": "Pemohon/CFU dan Tribe", "accountable": "Pihak berwenang sesuai SOP", "consulted_informed": "Chapter, PM, Finance/Procurement" },
+    { "activity": "Deliverable First Responder", "responsible": "PM/BA/SA/Data/Design", "accountable": "Reviewer/approver sesuai governance", "consulted_informed": "Stakeholder dan Chapter" },
+    { "activity": "Prasyarat Buffer", "responsible": "PM/SA/tim sebelumnya dan talent Buffer", "accountable": "Chapter/PM sesuai kewenangan", "consulted_informed": "Tribe, reviewer teknis" },
+    { "activity": "Weekly report & blocker", "responsible": "Talent Buffer; PM konsolidasi", "accountable": "PM/Chapter", "consulted_informed": "Tribe/Chapter terkait" },
+    { "activity": "Acceptance/closure", "responsible": "Chapter pelaksana dan PM", "accountable": "Pihak berwenang/customer sesuai kontrak", "consulted_informed": "QA/SME/operasi" },
+    { "activity": "Evaluasi talent/dokumen", "responsible": "Chapter Management", "accountable": "Pimpinan Chapter", "consulted_informed": "Tribe/PM/talent" }
+  ]
+}

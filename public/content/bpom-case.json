@@ -1,0 +1,19 @@
+{
+  "case_code": "BPOM",
+  "title": "Kasus Khusus BPOM — SOP-07",
+  "requirement_label": "Kebutuhan (Nota Dinas 7 Okt 2026)",
+  "requirement_value": "70% FTE Delivery selama 3 bulan + 30% FTE fase Manage Service",
+  "dps_support_label": "Dukungan DPS",
+  "dps_support_value": "50% FTE melalui Tim Buffer (dukungan sementara)",
+  "period_label": "Periode bridging",
+  "period_template": "{start_date} – {bridging_end} · maksimal 4 minggu",
+  "definitive_plan_label": "Pemenuhan definitif",
+  "critical_control": "Titik kontrol kritis",
+  "critical_control_html": "Dukungan Buffer 50% FTE <u>tidak boleh</u> menjadi pemenuhan permanen atas kebutuhan PM. Rencana pemenuhan definitif oleh Tribe harus berjalan paralel; status pengganti, tanggal efektif, handover dan risiko dibahas sebelum masa bridging berakhir. Evaluasi minimal setelah 1 bulan (load activity talent/Tribe/Unit dan dokumen standar Chapter).",
+  "dashboard_alert": {
+    "title": "Kasus khusus BPOM (SOP-07) — {code}",
+    "body": "Bridging 50% FTE berakhir {bridging_end} ({days_text}). Dukungan Buffer tidak boleh menjadi pemenuhan permanen; talent definitif oleh Tribe harus berjalan paralel.",
+    "late_text": "SUDAH LEWAT",
+    "remaining_text": "tersisa {n} hari"
+  }
+}

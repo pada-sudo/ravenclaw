@@ -1,0 +1,26 @@
+{
+  "gates": {
+    "first_responder": ["G0", "G1", "G2A", "G3", "G4", "G5", "CLOSED"],
+    "buffer": ["G0", "G1", "G2B", "G3", "G4", "G5", "CLOSED"]
+  },
+  "labels": {
+    "G0": "G0 Kualifikasi",
+    "G1": "G1 Administratif",
+    "G2A": "G2A Setup FR",
+    "G2B": "G2B Kesiapan Buffer",
+    "G3": "G3 Delivery",
+    "G4": "G4 Acceptance",
+    "G5": "G5 Transisi",
+    "CLOSED": "Selesai"
+  },
+  "descriptions": {
+    "G0": "Kebutuhan/peluang proyek masuk; tentukan jalur: proyek baru → First Responder, proyek existing → Buffer.",
+    "G1": "NDE permintaan CFU tersedia, anggaran disetujui dan tersedia, onboarding/akses talent berjalan.",
+    "G2A": "First Responder: WBS, BRD, SAD, Workforce Plan, Initial Data Solution, Initial Design Documentation, Project Charter.",
+    "G2B": "Buffer: BRD/SAD/repository/change log/user story direview; knowledge transfer selesai.",
+    "G3": "Sepakati scope, timeline, FTE, akses, weekly report, risiko, blocker, evidence dan jalur eskalasi.",
+    "G4": "Validasi hasil, testing dan dokumen serah terima sesuai kontrak, SOP dan jenis proyek.",
+    "G5": "Transisi ke talent definitif/operasi; isu residual, lessons learned, evaluasi load activity.",
+    "CLOSED": "Penugasan ditutup; owner lanjutan, dokumen dan tindak lanjut terdokumentasi."
+  }
+}

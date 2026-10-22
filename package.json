@@ -5,9 +5,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test tests/*.js",
+    "test": "node --test 'tests/*.js' 'tests/*.mjs'",
     "test:domain": "node --test tests/test_domain.js",
-    "test:http": "node --test tests/test_http.js"
+    "test:http": "node --test tests/test_http.js",
+    "test:frontend": "node --test tests/test_frontend.mjs"
   },
   "engines": {
     "node": ">=24"
