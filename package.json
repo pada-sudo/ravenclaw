@@ -1,7 +1,7 @@
 {
-  "name": "ddp-project-control",
+  "name": "ravenclaw",
   "version": "1.0.0",
-  "description": "Web app untuk workflow bisnis project DDP Telkom (First Responder / Buffer, gate G0-G5, SOP-01..07)",
+  "description": "RavenClaw — web app untuk workflow bisnis project DDP Telkom (First Responder / Buffer, gate G0-G5, SOP-01..07)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

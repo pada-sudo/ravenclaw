@@ -1,4 +1,4 @@
-# Traceability SOP ↔ Fitur ↔ Test — DDP Project Control
+# Traceability SOP ↔ Fitur ↔ Test — RavenClaw
 
 - **Tanggal verifikasi:** 22 Oktober 2026
 - **Commit yang dinilai:** `41ba7e4` pada branch `agent/pedro-tech-lead/46e74842a795` (setelah merge stage 1–2)

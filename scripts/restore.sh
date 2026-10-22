@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Restore DDP Project Control SQLite database from a backup file.
+# Restore RavenClaw SQLite database from a backup file.
 # Usage: ./scripts/restore.sh <backup_file> [target_directory]
 # The current database is moved to <db>.pre-restore-<timestamp> before restore.
 

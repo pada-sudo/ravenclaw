@@ -1,4 +1,4 @@
-# Panduan PM (Project Manager) — DDP Project Control
+# Panduan PM (Project Manager) — RavenClaw
 
 **Peran:** `pm` · **Siapa:** PM yang bertanggung jawab atas penugasan dan isi laporan.
 **Prinsip:** PM **mengonfirmasi dan memutuskan**, bukan memasukkan data mentah. Operator yang

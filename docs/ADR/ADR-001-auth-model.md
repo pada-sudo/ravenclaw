@@ -1,10 +1,10 @@
-# ADR-001: Model Autentikasi dan Otorisasi DDP Project Control
+# ADR-001: Model Autentikasi dan Otorisasi RavenClaw
 
 ## Status
 Diusulkan — menunggu persetujuan Pedro sebelum final.
 
 ## Konteks
-Aplikasi DDP Project Control adalah alat governance internal untuk workflow proyek DDP Telkom. Baseline audit menemukan seluruh endpoint `/api/*` terbuka tanpa autentikasi dan otorisasi (B1). Karena aplikasi ini mencatat approval gate dan eskalasi, jejak audit tidak bisa dipercaya tanpa identitas pelaku yang jelas.
+Aplikasi RavenClaw adalah alat governance internal untuk workflow proyek DDP Telkom. Baseline audit menemukan seluruh endpoint `/api/*` terbuka tanpa autentikasi dan otorisasi (B1). Karena aplikasi ini mencatat approval gate dan eskalasi, jejak audit tidak bisa dipercaya tanpa identitas pelaku yang jelas.
 
 ## Keputusan
 Menggunakan **server-side session cookie** untuk autentikasi:

@@ -1,4 +1,4 @@
-# DDP Project Control — Deck Validasi Internal & Daftar Keputusan Pilot
+# RavenClaw — Deck Validasi Internal & Daftar Keputusan Pilot
 
 - **Tanggal:** 22 Oktober 2026
 - **Penyusun:** Rangga (Proposal/Content), issue DEEP-227 — bagian dari DEEP-218 (Web Apps)

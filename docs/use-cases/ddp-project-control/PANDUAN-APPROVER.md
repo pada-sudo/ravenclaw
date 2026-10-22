@@ -1,4 +1,4 @@
-# Panduan Approver — DDP Project Control
+# Panduan Approver — RavenClaw
 
 **Peran:** `approver` · **Siapa:** pihak berwenang yang menjamin gate hanya naik bila syaratnya benar.
 **Prinsip:** approver adalah **kontrol terakhir**. Segala yang bisa dilewati orang lain, di sinilah

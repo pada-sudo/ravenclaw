@@ -1,4 +1,4 @@
-# DDP Project Control
+# RavenClaw
 
 Aplikasi web untuk mengendalikan workflow bisnis project **DDP Telkom** pada jalur
 **First Responder** dan **Buffer**: gate G0–G5 (termasuk G2A/G2B), SOP-01 s/d SOP-07,
@@ -36,7 +36,7 @@ Kewenangan teknis per peran ada di `docs/ADR/ADR-002-rbac-roles.md`; aturan gate
 ## Menjalankan lokal
 
 ```bash
-cd apps/ddp-project-control
+# dari root repo ini (aplikasi ada di root, tidak ada subdirektori apps/)
 node server.js            # http://localhost:3000
 ```
 
@@ -87,7 +87,7 @@ pemilik perbaikannya: lihat [Keterbatasan yang diketahui](#keterbatasan-yang-dik
 ## Docker
 
 ```bash
-docker compose up -d --build      # baca .env, publikasi ${PORT:-3000}, volume ddp-sqlite -> /data
+docker compose up -d --build      # baca .env, publikasi ${PORT:-3000}, volume ravenclaw-sqlite -> /data
 curl -s localhost:3000/healthz    # {"status":"ok",...}
 docker compose down               # tambahkan -v bila ingin menghapus volume datanya
 ```
@@ -105,9 +105,9 @@ TRUSTED_ORIGINS=https://<host-aplikasi>
 Tanpa compose:
 
 ```bash
-docker build -t ddp-project-control .
-docker run -d -p 3000:3000 -v ddp-sqlite:/data \
-  -e SESSION_SECRET=<string-acak-panjang> ddp-project-control
+docker build -t ravenclaw .
+docker run -d -p 3000:3000 -v ravenclaw-sqlite:/data \
+  -e SESSION_SECRET=<string-acak-panjang> ravenclaw
 ```
 
 Catatan operasional (terverifikasi):
@@ -132,11 +132,11 @@ Skrip ada di `scripts/`, idempoten, dan memakai `node:sqlite` bila `sqlite3` CLI
   `docs/use-cases/ddp-project-control/RUNBOOK-OPERASIONAL.md` §4.
 
 ```bash
-# Backup -> ./backups/ddp-<UTC>.sqlite
+# Backup -> ./backups/ravenclaw-<UTC>.sqlite
 DATA_DIR=./data bash scripts/backup.sh ./backups
 
 # Restore ke direktori data lain (aman: tidak menimpa data yang sedang dipakai)
-bash scripts/restore.sh ./backups/ddp-<UTC>.sqlite ./data-restored
+bash scripts/restore.sh ./backups/ravenclaw-<UTC>.sqlite ./data-restored
 # database lama (bila ada) disimpan sebagai ddp.sqlite.pre-restore-<UTC>, lalu PRAGMA quick_check dijalankan
 ```
 
@@ -145,12 +145,12 @@ Untuk menjalankan dari hasil restore: `DATA_DIR=./data-restored node server.js`.
 Backup dari container (script tidak ada di image):
 
 ```bash
-docker compose exec -T ddp-project-control node -e "
+docker compose exec -T ravenclaw node -e "
 const {DatabaseSync}=require('node:sqlite');
 const db=new DatabaseSync('/data/ddp.sqlite');
 db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
-db.exec(\"VACUUM INTO '/data/ddp-backup.sqlite'\");"
-docker compose cp ddp-project-control:/data/ddp-backup.sqlite ./ddp-backup.sqlite
+db.exec(\"VACUUM INTO '/data/ravenclaw-backup.sqlite'\");"
+docker compose cp ravenclaw:/data/ravenclaw-backup.sqlite ./ravenclaw-backup.sqlite
 ```
 
 Uji restore berkala: restore ke direktori baru, jalankan dengan `DATA_DIR` berbeda, lalu buka
@@ -159,7 +159,7 @@ Uji restore berkala: restore ke direktori baru, jalankan dengan `DATA_DIR` berbe
 ## Test
 
 ```bash
-cd apps/ddp-project-control
+# dari root repo ini
 rm -rf data && npm test          # atau: rm -rf data && node --test 'tests/*.js' 'tests/*.mjs'
 ```
 

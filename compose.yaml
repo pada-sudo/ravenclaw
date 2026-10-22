@@ -1,9 +1,9 @@
 services:
-  ddp-project-control:
+  ravenclaw:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: ddp-project-control
+    container_name: ravenclaw
     ports:
       - "${PORT:-3000}:3000"
     environment:
@@ -17,7 +17,7 @@ services:
       - TRUSTED_ORIGINS=${TRUSTED_ORIGINS:-}
       - LOG_LEVEL=${LOG_LEVEL:-info}
     volumes:
-      - ddp-sqlite:/data
+      - ravenclaw-sqlite:/data
     healthcheck:
       test: ["CMD", "node", "-e", "require('node:http').get('http://localhost:3000/healthz', (r) => { process.exit(r.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"]
       interval: 30s
@@ -28,4 +28,4 @@ services:
     user: "1001:1001"
 
 volumes:
-  ddp-sqlite:
+  ravenclaw-sqlite:

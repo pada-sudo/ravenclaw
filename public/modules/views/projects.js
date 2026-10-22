@@ -22,6 +22,12 @@ export async function renderProjects(container) {
   }
   const projects = data.data || [];
 
+  const emptyView = projects.length === 0 ? stateBox({
+    state: STATE.empty,
+    emptyText: 'Belum ada proyek. Buat intake pertama untuk mulai.',
+    children: '<button class="btn" id="btnEmptyIntake">+ Intake Proyek (SOP-01)</button>'
+  }) : '';
+
   const rows = projects.map(p => {
     const warn = p.procurement && p.procurement.warning;
     return `<tr>
@@ -43,6 +49,11 @@ export async function renderProjects(container) {
       </td></tr>`;
   }).join('') || '<tr><td colspan="10" class="muted">Tidak ada proyek.</td></tr>';
 
+  const tableCard = projects.length === 0
+    ? `<div class="card">${emptyView}</div>`
+    : `<div class="card" style="padding:6px 12px">${tableScroll(`<table><thead><tr><th>Kode</th><th>Nama</th><th>Customer/CFU</th><th>Jalur</th><th>Gate</th><th>Status</th><th>PM</th><th>Mulai</th><th>Akhir bridging</th><th>Aksi</th></tr></thead>
+      <tbody>${rows}</tbody></table>`)}</div>`;
+
   container.innerHTML = `
     <h1>Proyek &amp; Penugasan</h1>
     <p class="sub">Register proyek / resource request Shared Service DDP.</p>
@@ -60,10 +71,10 @@ export async function renderProjects(container) {
       <div class="spacer"></div>
       <button class="btn" id="btnIntake">+ Intake Proyek (SOP-01)</button>
     </div>
-    <div class="card" style="padding:6px 12px">
-      ${tableScroll(`<table><thead><tr><th>Kode</th><th>Nama</th><th>Customer/CFU</th><th>Jalur</th><th>Gate</th><th>Status</th><th>PM</th><th>Mulai</th><th>Akhir bridging</th><th>Aksi</th></tr></thead>
-      <tbody>${rows}</tbody></table>`)}
-    </div>`;
+    ${tableCard}`;
+
+  const emptyIntake = $('#btnEmptyIntake');
+  if (emptyIntake) emptyIntake.onclick = () => openIntake();
 
   $('#fTrack').onchange = e => { filters.track = e.target.value; renderProjects(container); };
   $('#fGate').onchange = e => { filters.gate = e.target.value; renderProjects(container); };

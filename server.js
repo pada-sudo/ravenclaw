@@ -233,5 +233,5 @@ setInterval(() => {
 
 server.listen(PORT, () => {
   const addr = server.address();
-  console.log(`DDP Project Control berjalan di http://localhost:${addr.port}`);
+  console.log(`RavenClaw berjalan di http://localhost:${addr.port}`);
 });

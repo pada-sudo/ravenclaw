@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Backup DDP Project Control SQLite database.
+# Backup RavenClaw SQLite database.
 # Usage: ./scripts/backup.sh [target_directory]
 # Produces a timestamped backup file and runs WAL checkpoint before copying.
 
@@ -17,7 +17,7 @@ fi
 
 mkdir -p "${BACKUP_DIR}"
 TS=$(date -u +%Y%m%dT%H%M%SZ)
-BACKUP_FILE="${BACKUP_DIR}/ddp-${TS}.sqlite"
+BACKUP_FILE="${BACKUP_DIR}/ravenclaw-${TS}.sqlite"
 
 echo "Checkpointing WAL and creating backup: ${BACKUP_FILE}"
 

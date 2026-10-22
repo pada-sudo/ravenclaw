@@ -38,7 +38,7 @@ export async function renderDashboard(container) {
   const pipeline = gateOrder.map(g => {
     const chips = byGate[g].map(p =>
       `<div class="chip"><a href="#/project/${p.id}">${esc(p.code)}</a><br><span class="muted small">${esc(p.name)}</span></div>`).join('');
-    return `<div class="pcol"><h4>${esc(gateLabels[g] || g)}</h4><div class="cnt">${byGate[g].length}</div>${chips}</div>`;
+    return `<div class="pcol"><h4>${esc(gateLabels[g] || g)}</h4><div class="cnt">${byGate[g].length}</div>${chips || `<p class="small muted" style="margin-top:auto">Tidak ada penugasan</p>`}</div>`;
   }).join('<div class="arrow" aria-hidden="true">→</div>');
 
   const blockerRows = kpis.blocker_list.map(b => `<tr>

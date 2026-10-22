@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Multi-stage build for DDP Project Control.
+# Multi-stage build for RavenClaw.
 # Runtime image is non-root and contains only the app + pinned Node 24 runtime.
 
 FROM node:24.18.1-alpine AS base

@@ -1,4 +1,4 @@
-# Runbook Insiden — DDP Project Control
+# Runbook Insiden — RavenClaw
 
 **Tujuan:** langkah pertama saat ada gangguan, tanpa menebak. **Pemilik:** Victor (DevOps).
 **Prosedur panjang (backup, restore, sesi, log) ada di `RUNBOOK-OPERASIONAL.md`** — dokumen ini hanya

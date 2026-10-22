@@ -1,4 +1,4 @@
-# Runbook Operasional — DDP Project Control
+# Runbook Operasional — RavenClaw
 
 **Status:** draft operasional. Perintah pada §3–§6 **sudah diuji** pada 22 Oktober 2026 (native Node 24
 dan Docker 29.9.1) dengan hasil yang disebutkan masing-masing bagian. Pemilik operasional: **Victor
@@ -71,7 +71,7 @@ sudah divalidasi:
 
 ```ini
 [Unit]
-Description=DDP Project Control
+Description=RavenClaw
 After=network.target
 
 [Service]

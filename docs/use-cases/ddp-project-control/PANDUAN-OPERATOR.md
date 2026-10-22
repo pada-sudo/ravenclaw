@@ -1,4 +1,4 @@
-# Panduan Operator — DDP Project Control
+# Panduan Operator — RavenClaw
 
 **Peran:** `operator` · **Siapa:** staf DDP/Shared Service yang menjalankan proses harian.
 **Prinsip:** operator **mencatat fakta dan bukti**. Operator tidak memutuskan gate naik, tidak

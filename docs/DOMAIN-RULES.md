@@ -1,6 +1,6 @@
-# Domain Rules — DDP Project Control
+# Domain Rules — RavenClaw
 
-Dokumen ini adalah satu-satunya sumber kebenaran untuk aturan gate, status, dan batasan domain aplikasi **DDP Project Control**. Backend (`server.js`) dan frontend (`public/app.js`) harus mengonsumsi aturan yang sama melalui `GET /api/meta`.
+Dokumen ini adalah satu-satunya sumber kebenaran untuk aturan gate, status, dan batasan domain aplikasi **RavenClaw**. Backend (`server.js`) dan frontend (`public/app.js`) harus mengonsumsi aturan yang sama melalui `GET /api/meta`.
 
 ## 1. Jalur Proyek (`track`)
 

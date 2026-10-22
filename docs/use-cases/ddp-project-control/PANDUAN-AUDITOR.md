@@ -1,4 +1,4 @@
-# Panduan Auditor — DDP Project Control
+# Panduan Auditor — RavenClaw
 
 **Peran:** `auditor` · **Siapa:** pihak yang membuktikan bahwa proses DDP benar-benar dijalankan —
 bukan yang menjalankannya.

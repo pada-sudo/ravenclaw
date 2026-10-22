@@ -1,4 +1,4 @@
-# ADR-INDEX — Indeks Keputusan Desain, DDP Project Control
+# ADR-INDEX — Indeks Keputusan Desain, RavenClaw
 
 Empat ADR aktif di `apps/ddp-project-control/docs/ADR/`. Semua masih **berstatus "Diusulkan"** dan
 butuh persetujuan Pedro (Tech Lead) sebelum dianggap final; THEOFILUS menerima konsekuensinya.

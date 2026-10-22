@@ -15,7 +15,7 @@ export function stateBox({ state, error, emptyText, children }) {
     return `<div class="alert red" role="alert"><b>Gagal memuat</b>${esc(error?.message || 'Terjadi kesalahan.')}</div>`;
   }
   if (state === STATE.empty) {
-    return `<div class="state-box empty" role="status"><p class="muted">${esc(emptyText || 'Tidak ada data.')}</p></div>`;
+    return `<div class="empty-state" role="status"><div class="empty-icon" aria-hidden="true">⊘</div><p>${esc(emptyText || 'Tidak ada data.')}</p>${children || ''}</div>`;
   }
   return children || '';
 }

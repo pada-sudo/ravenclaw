@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
-  title: DDP Project Control API
+  title: RavenClaw API
   version: '2.1.0'
-  description: API kontrak untuk aplikasi DDP Project Control — backend oleh Bagas (stage 1), auth/hardening oleh Victor (stage 2).
+  description: API kontrak untuk aplikasi RavenClaw — backend oleh Bagas (stage 1), auth/hardening oleh Victor (stage 2).
 servers:
   - url: http://localhost:3000
 paths:
