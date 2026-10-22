@@ -4,7 +4,10 @@
   "description": "Web app untuk workflow bisnis project DDP Telkom (First Responder / Buffer, gate G0-G5, SOP-01..07)",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test tests/*.js",
+    "test:domain": "node --test tests/test_domain.js",
+    "test:http": "node --test tests/test_http.js"
   },
   "engines": {
     "node": ">=24"

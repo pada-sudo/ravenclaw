@@ -1,0 +1,874 @@
+openapi: 3.1.0
+info:
+  title: DDP Project Control API
+  version: '2.0.0'
+  description: API kontrak untuk aplikasi DDP Project Control — backend oleh Bagas (stage 1).
+servers:
+  - url: http://localhost:3000
+paths:
+  /api/kpis:
+    get:
+      summary: KPI dashboard
+      operationId: getKpis
+      responses:
+        '200':
+          description: Ringkasan KPI dan daftar blocker terbuka.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Kpis'
+  /api/projects:
+    get:
+      summary: Daftar proyek
+      operationId: listProjects
+      parameters:
+        - in: query
+          name: track
+          schema: { type: string, enum: [first_responder, buffer] }
+        - in: query
+          name: gate
+          schema: { type: string, enum: [G0, G1, G2A, G2B, G3, G4, G5, CLOSED] }
+        - in: query
+          name: status
+          schema: { type: string, enum: [active, pending, blocked, closed] }
+        - in: query
+          name: include_deleted
+          schema: { type: boolean }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 50, maximum: 200 }
+        - in: query
+          name: offset
+          schema: { type: integer, default: 0 }
+      responses:
+        '200':
+          description: Daftar proyek + metadata pagination.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/ProjectListItem' } }
+                  pagination: { $ref: '#/components/schemas/Pagination' }
+    post:
+      summary: Intake proyek baru
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectInput'
+      responses:
+        '200':
+          description: Proyek berhasil dibuat beserta deliverable/checklist awal.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: integer }
+                  code: { type: string }
+                  procurement: { $ref: '#/components/schemas/ProcurementInfo' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimit' }
+  /api/projects/{id}:
+    get:
+      summary: Detail proyek lengkap
+      operationId: getProject
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Detail proyek beserta relasi.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectDetail'
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      summary: Perbarui data proyek
+      operationId: updateProject
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectUpdate'
+      responses:
+        '200':
+          description: Proyek terbarui.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Project' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      summary: Hapus (soft delete) proyek
+      operationId: deleteProject
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Proyek dihapus secara logis.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  deleted: { type: string }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/projects/{id}/advance:
+    post:
+      summary: Naikkan gate
+      operationId: advanceGate
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                force: { type: boolean, default: false }
+                force_reason: { type: string, maxLength: 2000 }
+      responses:
+        '200':
+          description: Gate naik.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  next: { type: string }
+                  forced: { type: boolean }
+                  gaps: { type: array, items: { type: string } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /api/projects/{id}/close:
+    post:
+      summary: Tandai proyek selesai
+      operationId: closeProject
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Proyek ditutup.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  gate: { type: string }
+                  status: { type: string }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/projects/{id}/reopen:
+    post:
+      summary: Buka kembali proyek
+      operationId: reopenProject
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Proyek aktif kembali.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  gate: { type: string }
+                  status: { type: string }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/projects/{id}/gate_notes/{gate}:
+    put:
+      summary: Catatan proses gate
+      operationId: putGateNote
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: gate
+          required: true
+          schema: { type: string, enum: [G0, G1, G2A, G2B, G3, G4, G5, CLOSED] }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note: { type: string, maxLength: 4000 }
+      responses:
+        '200':
+          description: Catatan tersimpan.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /api/projects/{id}/deliverables:
+    post:
+      summary: Tambah deliverable
+      operationId: addDeliverable
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeliverableInput'
+      responses:
+        '200':
+          description: Deliverable terbuat.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Deliverable' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /api/projects/{id}/deliverables/{did}:
+    put:
+      summary: Update deliverable
+      operationId: updateDeliverable
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: did
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeliverableUpdate'
+      responses:
+        '200':
+          description: Deliverable terbarui.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Deliverable' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      summary: Hapus deliverable
+      operationId: deleteDeliverable
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: did
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Deliverable terhapus.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /api/projects/{id}/buffer_checks:
+    post:
+      summary: Tambah prasyarat Buffer
+      operationId: addBufferCheck
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                item: { type: string, maxLength: 300 }
+      responses:
+        '200':
+          description: Prasyarat terbuat.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /api/projects/{id}/buffer_checks/{cid}:
+    put:
+      summary: Update prasyarat Buffer
+      operationId: updateBufferCheck
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: cid
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BufferCheckUpdate'
+      responses:
+        '200':
+          description: Prasyarat terbarui.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BufferCheck' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      summary: Hapus prasyarat Buffer
+      operationId: deleteBufferCheck
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: cid
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Prasyarat terhapus.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /api/projects/{id}/reports:
+    post:
+      summary: Simpan weekly report
+      operationId: addReport
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WeeklyReportInput'
+      responses:
+        '200':
+          description: Report tersimpan.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /api/reports/{rid}/confirm:
+    put:
+      summary: Konfirmasi weekly report oleh PM
+      operationId: confirmReport
+      parameters:
+        - in: path
+          name: rid
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pm_confirmed_by: { type: string, maxLength: 200 }
+      responses:
+        '200':
+          description: Report dikonfirmasi.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/projects/{id}/risks:
+    post:
+      summary: Tambah item RAID
+      operationId: addRisk
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RiskInput'
+      responses:
+        '200':
+          description: Item RAID tersimpan.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /api/risks/{rid}:
+    put:
+      summary: Update status/item RAID
+      operationId: updateRisk
+      parameters:
+        - in: path
+          name: rid
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RiskUpdate'
+      responses:
+        '200':
+          description: Item RAID terbarui.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/projects/{id}/changes:
+    post:
+      summary: Ajukan change request
+      operationId: addChangeRequest
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeRequestInput'
+      responses:
+        '200':
+          description: Change request tersimpan.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /api/changes/{cid}:
+    put:
+      summary: Keputusan change request
+      operationId: updateChangeRequest
+      parameters:
+        - in: path
+          name: cid
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [diajukan, disetujui, ditolak] }
+      responses:
+        '200':
+          description: Change request terbarui.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /api/meta:
+    get:
+      summary: Metadata domain
+      operationId: getMeta
+      responses:
+        '200':
+          description: Enum, gate sequence, daftar deliverable/checklist wajib.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meta'
+components:
+  responses:
+    NotFound:
+      description: Resource tidak ditemukan.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string }
+    ValidationError:
+      description: Input tidak valid.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string }
+              next: { type: string }
+              gaps: { type: array, items: { type: string } }
+    RateLimit:
+      description: Rate limit terlampaui.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string }
+  schemas:
+    Pagination:
+      type: object
+      properties:
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+    Project:
+      type: object
+      properties:
+        id: { type: integer }
+        code: { type: string }
+        name: { type: string }
+        customer_cfu: { type: string }
+        tribe_unit: { type: string }
+        business_owner: { type: string }
+        pm: { type: string }
+        project_type: { type: string, enum: [new, existing] }
+        track: { type: string, enum: [first_responder, buffer] }
+        reason_shared_service: { type: string }
+        nde_no: { type: string }
+        nde_date: { type: string, format: date }
+        budget_status: { type: string, enum: [belum_diajukan, diajukan, disetujui] }
+        procurement_doc: { type: string }
+        procurement_target_start: { type: string, format: date }
+        procurement_submit_by: { type: string }
+        onboarding_status: { type: string, enum: [belum_mulai, berjalan, selesai] }
+        gate: { type: string, enum: [G0, G1, G2A, G2B, G3, G4, G5, CLOSED] }
+        status: { type: string, enum: [active, pending, blocked, closed] }
+        prev_gate: { type: string }
+        fte: { type: string }
+        start_date: { type: string, format: date }
+        end_date: { type: string, format: date }
+        bridging_end: { type: string, format: date }
+        bpom_case: { type: integer }
+        definitive_plan: { type: string }
+        notes: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        deleted_at: { type: string, format: date-time }
+    ProjectListItem:
+      allOf:
+        - $ref: '#/components/schemas/Project'
+        - type: object
+          properties:
+            procurement: { $ref: '#/components/schemas/ProcurementInfo' }
+    ProjectDetail:
+      type: object
+      properties:
+        project: { $ref: '#/components/schemas/Project' }
+        procurement: { $ref: '#/components/schemas/ProcurementInfo' }
+        deliverables: { type: array, items: { $ref: '#/components/schemas/Deliverable' } }
+        buffer_checks: { type: array, items: { $ref: '#/components/schemas/BufferCheck' } }
+        reports: { type: array, items: { $ref: '#/components/schemas/WeeklyReport' } }
+        risks: { type: array, items: { $ref: '#/components/schemas/Risk' } }
+        changes: { type: array, items: { $ref: '#/components/schemas/ChangeRequest' } }
+        events: { type: array, items: { $ref: '#/components/schemas/Event' } }
+        gate_notes: { type: array, items: { $ref: '#/components/schemas/GateNote' } }
+        gate_info: { $ref: '#/components/schemas/GateInfo' }
+    ProcurementInfo:
+      type: object
+      properties:
+        doc: { type: string }
+        lead_days: { type: integer, nullable: true }
+        submit_by: { type: string }
+        warning: { type: string }
+    GateInfo:
+      type: object
+      properties:
+        next: { type: string, nullable: true }
+        gaps: { type: array, items: { type: string } }
+    ProjectInput:
+      type: object
+      required: [name, project_type, track]
+      properties:
+        name: { type: string, maxLength: 300 }
+        customer_cfu: { type: string, maxLength: 200 }
+        tribe_unit: { type: string, maxLength: 200 }
+        business_owner: { type: string, maxLength: 200 }
+        pm: { type: string, maxLength: 200 }
+        project_type: { type: string, enum: [new, existing] }
+        track: { type: string, enum: [first_responder, buffer] }
+        reason_shared_service: { type: string, maxLength: 2000 }
+        nde_no: { type: string, maxLength: 200 }
+        nde_date: { type: string, format: date }
+        budget_status: { type: string, enum: [belum_diajukan, diajukan, disetujui] }
+        procurement_doc: { type: string }
+        procurement_target_start: { type: string, format: date }
+        onboarding_status: { type: string, enum: [belum_mulai, berjalan, selesai] }
+        fte: { type: string, maxLength: 100 }
+        start_date: { type: string, format: date }
+        end_date: { type: string, format: date }
+        bridging_end: { type: string, format: date }
+        bpom_case: { type: boolean }
+        definitive_plan: { type: string, maxLength: 2000 }
+        notes: { type: string, maxLength: 4000 }
+    ProjectUpdate:
+      allOf:
+        - $ref: '#/components/schemas/ProjectInput'
+        - type: object
+          properties:
+            status: { type: string, enum: [active, pending, blocked, closed] }
+    Deliverable:
+      type: object
+      properties:
+        id: { type: integer }
+        project_id: { type: integer }
+        name: { type: string }
+        owner_role: { type: string }
+        status: { type: string, enum: [belum_mulai, dalam_proses, review, disetujui] }
+        evidence_url: { type: string }
+        reviewed_by: { type: string }
+        due_date: { type: string, format: date }
+        updated_at: { type: string, format: date-time }
+        required: { type: integer }
+    DeliverableInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, maxLength: 300 }
+        owner_role: { type: string, maxLength: 200 }
+        due_date: { type: string, format: date }
+    DeliverableUpdate:
+      type: object
+      properties:
+        name: { type: string, maxLength: 300 }
+        owner_role: { type: string, maxLength: 200 }
+        status: { type: string, enum: [belum_mulai, dalam_proses, review, disetujui] }
+        evidence_url: { type: string, maxLength: 1000 }
+        reviewed_by: { type: string, maxLength: 200 }
+        due_date: { type: string, format: date }
+    BufferCheck:
+      type: object
+      properties:
+        id: { type: integer }
+        project_id: { type: integer }
+        item: { type: string }
+        verified: { type: integer }
+        evidence: { type: string }
+        verified_by: { type: string }
+        verified_at: { type: string }
+        notes: { type: string }
+        required: { type: integer }
+    BufferCheckUpdate:
+      type: object
+      properties:
+        item: { type: string, maxLength: 300 }
+        verified: { type: boolean }
+        evidence: { type: string, maxLength: 1000 }
+        verified_by: { type: string, maxLength: 200 }
+        notes: { type: string, maxLength: 2000 }
+    WeeklyReport:
+      type: object
+      properties:
+        id: { type: integer }
+        project_id: { type: integer }
+        period: { type: string }
+        talent_info: { type: string }
+        planned: { type: string }
+        actual: { type: string }
+        evidence_url: { type: string }
+        next_steps: { type: string }
+        blockers: { type: string }
+        decisions_needed: { type: string }
+        access_status: { type: string }
+        submitted_by: { type: string }
+        submitted_at: { type: string, format: date-time }
+        pm_confirmed: { type: integer }
+        pm_confirmed_by: { type: string }
+    WeeklyReportInput:
+      type: object
+      required: [period]
+      properties:
+        period: { type: string, maxLength: 100 }
+        talent_info: { type: string, maxLength: 500 }
+        planned: { type: string, maxLength: 4000 }
+        actual: { type: string, maxLength: 4000 }
+        evidence_url: { type: string, maxLength: 1000 }
+        next_steps: { type: string, maxLength: 4000 }
+        blockers: { type: string, maxLength: 4000 }
+        decisions_needed: { type: string, maxLength: 2000 }
+        access_status: { type: string, maxLength: 500 }
+        submitted_by: { type: string, maxLength: 200 }
+        pm_confirmed: { type: boolean }
+        pm_confirmed_by: { type: string, maxLength: 200 }
+    Risk:
+      type: object
+      properties:
+        id: { type: integer }
+        project_id: { type: integer }
+        kind: { type: string, enum: [risiko, isu, blocker, dependensi] }
+        title: { type: string }
+        description: { type: string }
+        impact: { type: string }
+        owner: { type: string }
+        due_date: { type: string, format: date }
+        mitigation: { type: string }
+        status: { type: string, enum: [open, closed] }
+        escalated: { type: integer }
+        created_at: { type: string, format: date-time }
+        closed_at: { type: string }
+    RiskInput:
+      type: object
+      required: [kind, title]
+      properties:
+        kind: { type: string, enum: [risiko, isu, blocker, dependensi] }
+        title: { type: string, maxLength: 300 }
+        description: { type: string, maxLength: 4000 }
+        impact: { type: string, maxLength: 1000 }
+        owner: { type: string, maxLength: 200 }
+        due_date: { type: string, format: date }
+        mitigation: { type: string, maxLength: 2000 }
+        escalated: { type: boolean }
+    RiskUpdate:
+      type: object
+      properties:
+        status: { type: string, enum: [open, closed] }
+        owner: { type: string, maxLength: 200 }
+        due_date: { type: string, format: date }
+        mitigation: { type: string, maxLength: 2000 }
+    ChangeRequest:
+      type: object
+      properties:
+        id: { type: integer }
+        project_id: { type: integer }
+        title: { type: string }
+        description: { type: string }
+        impact_assessment: { type: string }
+        approver: { type: string }
+        status: { type: string, enum: [diajukan, disetujui, ditolak] }
+        created_at: { type: string, format: date-time }
+        decided_at: { type: string }
+    ChangeRequestInput:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, maxLength: 300 }
+        description: { type: string, maxLength: 4000 }
+        impact_assessment: { type: string, maxLength: 4000 }
+        approver: { type: string, maxLength: 200 }
+    Event:
+      type: object
+      properties:
+        id: { type: integer }
+        project_id: { type: integer, nullable: true }
+        gate: { type: string }
+        action: { type: string }
+        actor: { type: string }
+        note: { type: string }
+        created_at: { type: string, format: date-time }
+    GateNote:
+      type: object
+      properties:
+        project_id: { type: integer }
+        gate: { type: string }
+        note: { type: string }
+        updated_at: { type: string, format: date-time }
+    Kpis:
+      type: object
+      properties:
+        active_projects: { type: integer }
+        admin_readiness_pct: { type: integer }
+        fr_readiness_pct: { type: integer, nullable: true }
+        buffer_tech_readiness_pct: { type: integer, nullable: true }
+        weekly_reporting_compliance_pct: { type: integer, nullable: true }
+        blockers_open: { type: integer }
+        blocker_avg_age_days: { type: integer }
+        blocker_max_age_days: { type: integer }
+        transition_ready_pct: { type: integer, nullable: true }
+        blocker_list: { type: array, items: { $ref: '#/components/schemas/BlockerListItem' } }
+    BlockerListItem:
+      type: object
+      properties:
+        id: { type: integer }
+        project_id: { type: integer }
+        project_code: { type: string }
+        project_name: { type: string }
+        title: { type: string }
+        owner: { type: string }
+        due_date: { type: string, format: date }
+        age_days: { type: integer, nullable: true }
+    Meta:
+      type: object
+      properties:
+        fr_deliverables:
+          type: array
+          items:
+            type: array
+            items: { type: string }
+        buffer_checks:
+          type: array
+          items: { type: string }
+        proc_lead_days:
+          type: object
+          additionalProperties: { type: integer }
+        gates:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
