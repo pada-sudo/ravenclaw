@@ -256,3 +256,25 @@ label { display: block; font-size: 12px; font-weight: 600; color: #334155; margi
 @media (prefers-reduced-motion: reduce) {
   .spinner, .toast { animation: none; }
 }
+
+.user-chip {
+  margin-top: auto;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--sidebar-txt);
+  border-top: 1px solid #333c52;
+  word-break: break-word;
+}
+.user-chip[hidden], .actor-toggle[hidden] { display: none; }
+body.logged-out .sidebar { display: none; }
+.login-card {
+  max-width: 420px;
+  margin: 48px auto;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 24px;
+}
+.login-card h1 { font-size: 20px; margin: 0 0 6px; }
+.login-card .actions { margin-top: 14px; }
+.login-card .alert[hidden] { display: none; }

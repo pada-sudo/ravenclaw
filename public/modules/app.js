@@ -5,36 +5,54 @@ import { renderDashboard } from './views/dashboard.js';
 import { renderProjects } from './views/projects.js';
 import { renderProject } from './views/project-detail.js';
 import { renderReference } from './views/reference.js';
+import { renderLogin } from './views/login.js';
 import { stateBox, STATE, toast } from './state.js';
-import { getActor, setActor } from './api.js';
-import { modal } from './components.js';
+import { getSession, logout } from './api.js';
 
 let contentLoaded = false;
+let currentUser = null;
 
 async function init() {
   await loadContent();
   contentLoaded = true;
-  setupActorButton();
-  render();
+  wireLogout();
+  currentUser = await getSession();
+  if (!currentUser) return showLogin();
+  showApp();
 }
 
-function setupActorButton() {
-  const btn = $('#actorToggle');
-  if (!btn) return;
-  btn.onclick = () => {
-    const actor = getActor();
-    modal({
-      title: 'Identitas Operator',
-      body: `<div class="form-grid">
-        <div><label for="a_id">ID Operator</label><input id="a_id" name="id" value="${esc(actor.id || '')}"></div>
-        <div><label for="a_name">Nama Operator</label><input id="a_name" name="name" value="${esc(actor.name || '')}"></div>
-      </div>`,
-      onSubmit: (data, close) => {
-        setActor(data);
-        close();
-        toast('Identitas operator disimpan.');
-      }
-    });
+function showLogin() {
+  document.body.classList.add('logged-out');
+  const chip = $('#userChip');
+  if (chip) chip.hidden = true;
+  const out = $('#logoutBtn');
+  if (out) out.hidden = true;
+  renderLogin($('#main'), user => {
+    currentUser = user;
+    showApp();
+    render();
+  });
+}
+
+function showApp() {
+  document.body.classList.remove('logged-out');
+  const chip = $('#userChip');
+  if (chip) {
+    chip.hidden = false;
+    chip.textContent = `${currentUser.full_name} · ${currentUser.role}`;
+  }
+  const out = $('#logoutBtn');
+  if (out) out.hidden = false;
+}
+
+function wireLogout() {
+  const out = $('#logoutBtn');
+  if (!out) return;
+  out.onclick = async () => {
+    try { await logout(); } catch { /* sesi sudah tidak berlaku */ }
+    currentUser = null;
+    showLogin();
+    toast('Anda sudah keluar.');
   };
 }
 
@@ -51,6 +69,7 @@ async function render() {
     a.setAttribute('aria-current', active ? 'page' : 'false');
   });
 
+  if (!currentUser) return;
   if (!contentLoaded) {
     main.innerHTML = stateBox({ state: STATE.loading });
     return;
@@ -62,6 +81,10 @@ async function render() {
     else if (path.startsWith('/reference')) renderReference(main);
     else await renderDashboard(main);
   } catch (err) {
+    if (err.status === 401) {
+      currentUser = null;
+      return showLogin();
+    }
     main.innerHTML = stateBox({ state: STATE.error, error: err });
   }
 }

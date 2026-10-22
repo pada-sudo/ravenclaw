@@ -1,17 +1,3 @@
-const ACTOR_STORE_KEY = 'ddp_actor';
-
-export function getActor() {
-  try {
-    return JSON.parse(localStorage.getItem(ACTOR_STORE_KEY)) || {};
-  } catch {
-    return {};
-  }
-}
-
-export function setActor({ id, name }) {
-  localStorage.setItem(ACTOR_STORE_KEY, JSON.stringify({ id: (id || '').trim(), name: (name || '').trim() }));
-}
-
 export class ApiError extends Error {
   constructor(message, status, data) {
     super(message);
@@ -23,10 +9,7 @@ export class ApiError extends Error {
 }
 
 export async function api(path, method = 'GET', body) {
-  const opt = { method, headers: {} };
-  const actor = getActor();
-  if (actor.id) opt.headers['x-actor-id'] = actor.id;
-  if (actor.name) opt.headers['x-actor-name'] = actor.name;
+  const opt = { method, headers: {}, credentials: 'same-origin' };
   if (body !== undefined) {
     opt.headers['Content-Type'] = 'application/json';
     opt.body = JSON.stringify(body);
@@ -44,7 +27,25 @@ export async function api(path, method = 'GET', body) {
 }
 
 export async function fetchJson(path) {
-  const res = await fetch(path);
+  const res = await fetch(path, { credentials: 'same-origin' });
   if (!res.ok) throw new Error(`Gagal memuat ${path}`);
   return res.json();
+}
+
+export function login(username, password) {
+  return api('/api/auth/login', 'POST', { username, password });
+}
+
+export function logout() {
+  return api('/api/auth/logout', 'POST', {});
+}
+
+export async function getSession() {
+  try {
+    const data = await api('/api/auth/session');
+    return data.user;
+  } catch (err) {
+    if (err.status === 401) return null;
+    throw err;
+  }
 }
