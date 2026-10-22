@@ -1,0 +1,94 @@
+{
+  "sop_01": {
+    "title": "SOP-01 — Intake, Klasifikasi, dan Permintaan Shared Service",
+    "steps": [
+      "Catat project/customer, tujuan, target mulai, jenis kontrak, status procurement, scope awal dan kebutuhan role/FTE.",
+      "Tentukan jalur: First Responder (presales-support / project setup / transisi awal pascakontrak) atau Buffer (eksekusi proyek berjalan dengan kontrak jelas).",
+      "Susun kebutuhan talent, durasi, output, kapasitas dan risiko keterlambatan resource.",
+      "Ajukan permintaan CFU melalui NDE."
+    ],
+    "procurement_lead_times": [
+      { "doc": "PKDF", "lead_days": 60, "note": "Paling lambat 2 bulan" },
+      { "doc": "Justifikasi kebutuhan — Kontrak Lumsum", "lead_days": 45, "note": "Paling lambat 1,5 bulan" },
+      { "doc": "Justifikasi — Surat Pesanan dengan new item", "lead_days": 30, "note": "Paling lambat 1 bulan" },
+      { "doc": "Justifikasi — Surat Pesanan tanpa new item", "lead_days": 14, "note": "Paling lambat 2 minggu" }
+    ]
+  },
+  "sop_02": {
+    "title": "SOP-02 — Verifikasi Administratif dan Mobilisasi Talent",
+    "items": [
+      "Verifikasi NDE permintaan CFU (nomor, tanggal, ruang lingkup).",
+      "Verifikasi anggaran disetujui dan tersedia di sistem keuangan.",
+      "Pastikan onboarding talent berjalan: akses sistem, orientasi, hak akses.",
+      "Chapter menilai kebutuhan vs kapasitas; tetapkan role, FTE, periode, scope, pelaporan.",
+      "Koordinasikan talent dengan PM; catat gap administrasi dan eskalasi."
+    ],
+    "note": "Kriteria G1: lanjut jika NDE tersedia, anggaran disetujui/tersedia, onboarding/akses berjalan; bila belum, status Pending/Blocked dan gap dieskalasikan."
+  },
+  "sop_03": {
+    "title": "SOP-03 — First Responder: Setup Proyek Baru",
+    "description": "Deliverable wajib tersedia sebelum eksekusi proyek dimulai; gap dicatat dan dieskalasikan. Penyusun merujuk Nota Dinas Shared Service butir 5.a.",
+    "deliverables": [
+      { "name": "WBS", "owner_role": "Project Manager" },
+      { "name": "BRD", "owner_role": "PM dan/atau Business Analyst" },
+      { "name": "SAD", "owner_role": "Solution Architect" },
+      { "name": "Workforce Plan", "owner_role": "Solution Architect" },
+      { "name": "Initial Data Solution", "owner_role": "Data Team" },
+      { "name": "Initial Design Documentation", "owner_role": "Design Team" },
+      { "name": "Project Charter", "owner_role": "Ditandatangani seluruh pemangku kepentingan" }
+    ]
+  },
+  "sop_04": {
+    "title": "SOP-04 — Buffer: Dukungan Proyek Existing",
+    "items": [
+      "BRD existing, SAD existing, repository/change log/user story: tersedia dan telah direview.",
+      "Knowledge transfer dari tim sebelumnya selesai (MoM/handover checklist).",
+      "Scope/timeline/kapasitas (role, FTE, periode, task) disepakati; akses dokumentasi diperoleh.",
+      "Weekly progress ke PM setiap minggu; risiko/blocker dilaporkan sedini mungkin (RAID log).",
+      "Sebelum masa penugasan berakhir: serah terima hasil, isu residual, transisi ke tim definitif/operasi."
+    ],
+    "note": "Gate Buffer usulan: B1 administratif; B2 teknis/knowledge transfer; B3 mobilisasi; B4 exit/transition."
+  },
+  "sop_05": {
+    "title": "SOP-05 — Delivery Control, QA, Perubahan, dan Eskalasi",
+    "items": [
+      "Rencana kerja — WBS, milestone, planned/actual, owner, dependency, baseline.",
+      "Weekly progress — selesai vs rencana, next-week plan, evidence, blocker, risiko, keputusan.",
+      "QA dan kualitas — Chapter menyiapkan evidence; QA/reviewer memeriksa sesuai standar.",
+      "Change control — perubahan dicatat, dampak dinilai, approval sesuai kewenangan sebelum baseline berubah.",
+      "RAID — deskripsi, dampak, owner, due date, mitigasi, jalur eskalasi.",
+      "Security/kerahasiaan — akses berbasis kebutuhan; patuhi aturan keamanan, kerahasiaan dan PDP.",
+      "Eskalasi — blocker yang mengancam milestone/akses/kualitas/komitmen segera ke PM dan pihak berwenang."
+    ]
+  },
+  "sop_06": {
+    "title": "SOP-06 — Acceptance, Handover, dan Penutupan",
+    "items": [
+      "Inventarisasi deliverable selesai/belum; testing/QA/acceptance sesuai kontrak, scope, standar dan risiko.",
+      "Isu residual: owner, due date dan keputusan formal.",
+      "Handover dokumentasi, akses, konfigurasi/as-built/manual bila diwajibkan; BAPP/BAST sesuai kontrak.",
+      "Tutup penugasan; pastikan talent definitif/operasional ditangani; evaluasi load activity dan lessons learned."
+    ]
+  },
+  "sop_07": {
+    "title": "SOP-07 — Kasus Penugasan Buffer PM BPOM",
+    "requirement": "70% FTE Delivery selama 3 bulan + 30% FTE fase Manage Service.",
+    "dps_support": "50% FTE melalui Tim Buffer sebagai dukungan sementara.",
+    "period": "7 Oktober – 6 November 2026",
+    "max_bridging_weeks": 4,
+    "items": [
+      "Kebutuhan: 70% FTE Delivery (3 bulan) + 30% FTE Manage Service.",
+      "Dukungan DPS: 50% FTE melalui Tim Buffer sebagai dukungan sementara.",
+      "Periode: 7 Oktober – 6 November 2026; maksimal 4 minggu bridging.",
+      "Pemenuhan definitf oleh Tribe berjalan paralel; penugasan dapat disesuaikan sesuai kewenangan Chapter.",
+      "Evaluasi minimal setelah 1 bulan: load activity talent/Tribe/Unit dan dokumen standar Chapter.",
+      "Titik kontrol: Buffer 50% FTE bukan pemenuhan permanen."
+    ],
+    "critical_control": "Dukungan Buffer 50% FTE <u>tidak boleh</u> menjadi pemenuhan permanen atas kebutuhan PM. Rencana pemenuhan definitif oleh Tribe harus berjalan paralel; status pengganti, tanggal efektif, handover dan risiko dibahas sebelum masa bridging berakhir. Evaluasi minimal setelah 1 bulan (load activity talent/Tribe/Unit dan dokumen standar Chapter)."
+  },
+  "sources": [
+    "Nota Dinas C.Tel.28/YN 000/DDP-B0000000/2026, 30 April 2026 — Pembentukan dan Implementasi Tim Shared Service.",
+    "Nota Dinas C.Tel.87/PS 000/DDP-B0200000/2026, 7 Oktober 2026 — Penugasan Buffer Chapter DPS untuk BPOM."
+  ],
+  "disclaimer": "Draft untuk validasi internal; tidak menggantikan ketentuan resmi perusahaan, SOP pengadaan, kontrak, atau matriks kewenangan."
+}

@@ -1,0 +1,12 @@
+{
+  "title": "KPI Pilot",
+  "items": [
+    { "name": "Readiness administratif", "description": "% penugasan dengan NDE, anggaran dan onboarding tercatat." },
+    { "name": "Buffer technical readiness", "description": "% Buffer dengan BRD/SAD/repo/change log/user story direview dan KT selesai." },
+    { "name": "Weekly reporting compliance", "description": "% laporan mingguan diterima sesuai jadwal." },
+    { "name": "Blocker aging", "description": "Jumlah blocker terbuka dan umur penyelesaian." },
+    { "name": "First Responder readiness", "description": "% proyek dengan deliverable setup lengkap sebelum eksekusi." },
+    { "name": "Transition readiness", "description": "Status pemenuhan talent definitif sebelum bridging berakhir." },
+    { "name": "Chapter document review", "description": "Status review load activity dan dokumen standar Chapter." }
+  ]
+}
