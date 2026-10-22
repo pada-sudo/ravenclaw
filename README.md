@@ -105,7 +105,8 @@ docker compose down               # tambahkan -v bila ingin menghapus volume dat
 
 ```bash
 PORT=3000
-SESSION_SECRET=<string-acak-panjang>   # bila kosong compose memberi peringatan; sesi tetap jalan (token acak di DB)
+SESSION_SECRET=<string-acak-panjang>   # bila kosong compose memberi peringatan; sesi tetap jalan
+                                       # (token acak di DB — env ini tidak dibaca kode, lihat K12)
 COOKIE_SECURE=true                     # wajib bila diakses lewat HTTPS
 TRUSTED_ORIGINS=https://<host-aplikasi>
 ```
@@ -131,8 +132,13 @@ Catatan operasional (terverifikasi):
 ## Backup & restore
 
 Skrip ada di `scripts/`, idempoten, dan memakai `node:sqlite` bila `sqlite3` CLI tidak tersedia.
-Keduanya melakukan `PRAGMA wal_checkpoint(TRUNCATE)` lebih dulu, sehingga aman dijalankan saat
-layanan hidup.
+
+- **Backup** (`backup.sh`) melakukan `PRAGMA wal_checkpoint(TRUNCATE)` lebih dulu, sehingga aman
+  dijalankan saat layanan hidup.
+- **Restore** (`restore.sh`) **hanya boleh dijalankan setelah layanan dihentikan.** Restore ke
+  direktori lain aman; restore ke direktori data yang sedang dipakai proses hidup menyebabkan file
+  tidak konsisten (uji 22 Oktober: `wrong # of entries in index ...`). Prosedur lengkap:
+  `docs/use-cases/ddp-project-control/RUNBOOK-OPERASIONAL.md` §4.
 
 ```bash
 # Backup -> ./backups/ddp-<UTC>.sqlite
@@ -260,6 +266,9 @@ dampak, dan pemilik ada di `docs/use-cases/ddp-project-control/TRACEABILITY-2026
 | K7 | Angka BPOM (70/30/50%, bridging ≤4 minggu) ada di `public/content/bpom-case.json`, belum menjadi data per proyek dan tidak divalidasi | Perubahan Nota Dinas masih manual; batas 4 minggu tak dicek | Adit + Fajar |
 | K8 | `docs/DOMAIN-RULES.md` §2 menyatakan deliverable wajib boleh dihapus setelah G2A; kode menolak sampai proyek `CLOSED` | Aturan tertulis dan perilaku berbeda | Bagas |
 | K9 | Seed membuat ulang akun demo (password default) setiap start | Akun yang "dihapus" aktif kembali | Victor |
+| K10 | Tombol **Eskalasi & tetap naik gate** di UI tidak mengirim `force_reason`, sedangkan server mewajibkannya | Tombol selalu gagal `422 Force advance wajib menyertakan force_reason` | Fajar + Bagas |
+| K11 | KPI `blocker_avg_age_days` selalu `0` — `daysBetween()` hanya menerima `YYYY-MM-DD`, sedangkan `created_at` ISO lengkap | Umur blocker tidak terbaca di dashboard | Bagas |
+| K12 | `SESSION_SECRET` diisi di `compose.yaml`/ADR-004, tetapi tidak dibaca kode mana pun (token sesi acak di DB) | Operator mengira ada tanda tangan kriptografik; ADR terlihat tidak diimplementasikan | Bagas + Victor |
 
 ## Dokumen terkait
 
@@ -267,9 +276,10 @@ Di `docs/use-cases/ddp-project-control/`:
 
 - `AUDIT-2026-10-22-baseline.md` — audit baseline (temuan A/B/C/D/E) beserta bukti reproduksi.
 - `BASELINE-REQUIREMENTS-2026-10-22.md` — matriks kesesuaian SOP ↔ fitur, 50 kriteria penerimaan, gap register, definisi "pilot siap" (George).
-- `TRACEABILITY-2026-10-22.md` — matriks SOP ↔ fitur ↔ test dengan status terkini per butir.
+- `TRACEABILITY-2026-10-22.md` — matriks SOP ↔ fitur ↔ test dengan status terkini per butir (19 LULUS / 29 SEBAGIAN / 18 BELUM).
 - `PANDUAN-OPERATOR.md`, `PANDUAN-PM.md`, `PANDUAN-APPROVER.md`, `PANDUAN-AUDITOR.md` — langkah tugas per peran.
-- `RUNBOOK-INSIDEN.md` — aplikasi mati, database korup, restore, gate naik tanpa bukti.
+- `RUNBOOK-OPERASIONAL.md` — konfigurasi, backup/restore, logging, sesi, drill pemulihan.
+- `RUNBOOK-INSIDEN.md` — gejala → tindakan: layanan mati, database korup, restore, gate naik tanpa bukti.
 - `ADR-INDEX.md` — indeks keputusan (ADR) dengan tanggal & status.
 
 Di aplikasi: `docs/DOMAIN-RULES.md` (aturan domain), `docs/ADR/` (ADR penuh), `openapi.yaml` (kontrak API).
