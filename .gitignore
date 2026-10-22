@@ -1,0 +1,12 @@
+# runtime data (SQLite + WAL)
+data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# dependencies
+node_modules/
+
+# local env
+.env
+.env.local

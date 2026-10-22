@@ -1,0 +1,14 @@
+{
+  "name": "ddp-project-control",
+  "version": "1.0.0",
+  "description": "Web app untuk workflow bisnis project DDP Telkom (First Responder / Buffer, gate G0-G5, SOP-01..07)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}
