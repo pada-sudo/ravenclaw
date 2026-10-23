@@ -1,8 +1,20 @@
 openapi: 3.1.0
 info:
   title: RavenClaw API
-  version: '2.1.0'
-  description: API kontrak untuk aplikasi RavenClaw — backend oleh Bagas (stage 1), auth/hardening oleh Victor (stage 2).
+  version: '2.2.0'
+  description: |
+    API kontrak untuk aplikasi RavenClaw — backend oleh Bagas (stage 1), auth/hardening oleh Victor (stage 2).
+
+    Versi 2.2.0 menambahkan kontrak penyelarasan PRD v1.0 (23 Okt 2026). Setiap operasi yang
+    belum ada di runtime ditandai `x-impl-status: contract-only`; operasi yang sudah berjalan
+    ditandai `x-impl-status: implemented`. Kontrak ini tidak mengubah perilaku runtime apa pun
+    (lihat `docs/ADR/ADR-005-prd-v1-alignment.md`).
+  x-prd-alignment:
+    prd_version: '1.0'
+    prd_date: '2026-10-23'
+    source_issue: DEEP-235
+    adr: docs/ADR/ADR-005-prd-v1-alignment.md
+    domain_rules: docs/DOMAIN-RULES.md
 servers:
   - url: http://localhost:3000
 paths:
@@ -757,6 +769,170 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/RateLimit' }
+  /api/roles:
+    get:
+      summary: Katalog peran R01–R15 dan matriks izin per aksi
+      description: >
+        Kontrak target untuk FR-10..FR-14. Sumber aturan: `docs/DOMAIN-RULES.md` §16 dan
+        `docs/ADR/ADR-005-prd-v1-alignment.md`. Matriks izin hanya boleh punya satu definisi
+        di kode (`lib/auth.js`). Pengguna dengan peran legacy tetap mendapat
+        `legacy_equivalent` agar sesi lama tidak pecah.
+      operationId: listRoles
+      x-impl-status: contract-only
+      x-prd-fr: [FR-10, FR-11, FR-12, FR-13, FR-14]
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Katalog peran + matriks izin per aksi.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleCatalog'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimit' }
+  /api/raci:
+    get:
+      summary: Matriks RACI per gate
+      description: >
+        Kontrak target untuk FR-13. RACI adalah data, bukan halaman. Default RACI per gate
+        ada di `docs/DOMAIN-RULES.md` §16.4; menunggu konfirmasi otoritas resmi (OQ-01).
+      operationId: listRaci
+      x-impl-status: contract-only
+      x-prd-fr: [FR-13]
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: query
+          name: gate
+          schema: { $ref: '#/components/schemas/GateId' }
+      responses:
+        '200':
+          description: Entri RACI per gate dan peran.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/RaciEntry' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimit' }
+  /api/projects/{id}/gates/{gate}:
+    put:
+      summary: Ubah status satu gate (FR-07) dan rekam evidence/approval
+      description: >
+        Kontrak target. Status gate mengikuti `belum_mulai → dalam_proses → review → disetujui`.
+        Transisi ke `disetujui` hanya boleh oleh approver yang ditetapkan untuk gate tersebut
+        (FR-09, FR-12) dan wajib menyertakan minimal satu evidence (FR-08, FR-17).
+        Penolakan saat `review` mengembalikan status ke `dalam_proses` disertai `note`.
+      operationId: putGateStatus
+      x-impl-status: contract-only
+      x-prd-fr: [FR-07, FR-08, FR-09, FR-12, FR-17]
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: gate
+          required: true
+          schema: { $ref: '#/components/schemas/GateId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GateStatusInput'
+      responses:
+        '200':
+          description: Status gate tersimpan.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GateRecord' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimit' }
+  /api/projects/{id}/buffer_controls/{code}:
+    put:
+      summary: Ubah status kontrol Buffer B1–B4 atau sub-gate s4/sY
+      description: >
+        Kontrak target untuk FR-02 dan FR-03. Kontrol ini **opsional** (default `tidak_berlaku`
+        selama OQ-03 belum dijawab) dan tidak pernah menahan kenaikan gate. Berbeda dari
+        `buffer_checks` (8 prasyarat SOP-04 yang wajib untuk G2B) — lihat `docs/DOMAIN-RULES.md`
+        §15.
+      operationId: putBufferControl
+      x-impl-status: contract-only
+      x-prd-fr: [FR-02, FR-03]
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: code
+          required: true
+          schema: { $ref: '#/components/schemas/ControlCode' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BufferControlInput'
+      responses:
+        '200':
+          description: Kontrol tersimpan.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BufferControl' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimit' }
+  /api/projects/{id}/acceptance:
+    put:
+      summary: Rekam BAST / sign-off customer (G5)
+      description: >
+        Kontrak target untuk FR-35..FR-37. `POST /api/projects/{id}/close` hanya boleh berhasil
+        bila `acceptance.status = ditandatangani` dan evidence acceptance tersedia.
+        BAST hanya boleh direkam/ditandatangani oleh R13 (Customer) dengan pengetahuan R10.
+      operationId: putAcceptance
+      x-impl-status: contract-only
+      x-prd-fr: [FR-35, FR-36, FR-37]
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptanceInput'
+      responses:
+        '200':
+          description: BAST tersimpan.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Acceptance' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimit' }
 components:
   securitySchemes:
     sessionCookie:
@@ -824,7 +1000,13 @@ components:
         business_owner: { type: string }
         pm: { type: string }
         project_type: { type: string, enum: [new, existing] }
+        path: { $ref: '#/components/schemas/ProjectPath' }
+        chapter_manager: { type: string }
+        scope: { type: string }
+        data_classification: { $ref: '#/components/schemas/DataClassification' }
+        pdp_scope: { type: boolean }
         track: { type: string, enum: [first_responder, buffer] }
+        gate_status: { $ref: '#/components/schemas/GateStatus' }
         reason_shared_service: { type: string }
         nde_no: { type: string }
         nde_date: { type: string, format: date }
@@ -868,11 +1050,25 @@ components:
         changes: { type: array, items: { $ref: '#/components/schemas/ChangeRequest' } }
         events: { type: array, items: { $ref: '#/components/schemas/Event' } }
         gate_notes: { type: array, items: { $ref: '#/components/schemas/GateNote' } }
+        gates: { type: array, items: { $ref: '#/components/schemas/GateRecord' } }
+        buffer_controls: { type: array, items: { $ref: '#/components/schemas/BufferControl' } }
+        acceptance: { $ref: '#/components/schemas/Acceptance' }
+        compliance_evidence: { type: array, items: { $ref: '#/components/schemas/ComplianceEvidence' } }
         gate_info: { $ref: '#/components/schemas/GateInfo' }
     ProcurementInfo:
       type: object
+      description: >-
+        FR-31/FR-32. `doc` adalah label legacy yang dipakai `PROC_LEAD_DAYS`; `contract_type`
+        adalah enum ternormalisasi untuk PRD. Peta 1:1 dan deadline kontrak ada di
+        `docs/DOMAIN-RULES.md` §20.
       properties:
         doc: { type: string }
+        contract_type: { $ref: '#/components/schemas/ContractType' }
+        vendor_category: { $ref: '#/components/schemas/VendorCategory' }
+        tender_status: { $ref: '#/components/schemas/TenderStatus' }
+        contract_deadline_days: { type: integer, nullable: true }
+        contract_deadline: { type: string, format: date }
+        ready: { type: boolean }
         lead_days: { type: integer, nullable: true }
         submit_by: { type: string }
         warning: { type: string }
@@ -891,6 +1087,13 @@ components:
         business_owner: { type: string, maxLength: 200 }
         pm: { type: string, maxLength: 200 }
         project_type: { type: string, enum: [new, existing] }
+        chapter_manager: { type: string, maxLength: 200 }
+        scope: { type: string, maxLength: 4000 }
+        data_classification: { $ref: '#/components/schemas/DataClassification' }
+        pdp_scope: { type: boolean }
+        vendor_category: { $ref: '#/components/schemas/VendorCategory' }
+        tender_status: { $ref: '#/components/schemas/TenderStatus' }
+        contract_type: { $ref: '#/components/schemas/ContractType' }
         track: { type: string, enum: [first_responder, buffer] }
         reason_shared_service: { type: string, maxLength: 2000 }
         nde_no: { type: string, maxLength: 200 }
@@ -918,8 +1121,13 @@ components:
         id: { type: integer }
         project_id: { type: integer }
         name: { type: string }
+        kind: { $ref: '#/components/schemas/DeliverableKind' }
+        gate: { $ref: '#/components/schemas/GateId' }
         owner_role: { type: string }
         status: { type: string, enum: [belum_mulai, dalam_proses, review, disetujui] }
+        version: { type: string, pattern: '^[0-9]+\.[0-9]+$' }
+        versions: { type: array, items: { $ref: '#/components/schemas/DeliverableVersion' } }
+        evidence: { type: array, items: { $ref: '#/components/schemas/Evidence' } }
         evidence_url: { type: string }
         reviewed_by: { type: string }
         due_date: { type: string, format: date }
@@ -931,14 +1139,19 @@ components:
       required: [name]
       properties:
         name: { type: string, maxLength: 300 }
+        kind: { $ref: '#/components/schemas/DeliverableKind' }
+        gate: { $ref: '#/components/schemas/GateId' }
         owner_role: { type: string, maxLength: 200 }
+        version: { type: string, pattern: '^[0-9]+\.[0-9]+$' }
         due_date: { type: string, format: date }
     DeliverableUpdate:
       type: object
       properties:
         name: { type: string, maxLength: 300 }
+        kind: { $ref: '#/components/schemas/DeliverableKind' }
         owner_role: { type: string, maxLength: 200 }
         status: { type: string, enum: [belum_mulai, dalam_proses, review, disetujui] }
+        version: { type: string, pattern: '^[0-9]+\.[0-9]+$' }
         evidence_url: { type: string, maxLength: 1000 }
         reviewed_by: { type: string, maxLength: 200 }
         due_date: { type: string, format: date }
@@ -1010,6 +1223,11 @@ components:
         mitigation: { type: string }
         status: { type: string, enum: [open, closed] }
         escalated: { type: integer }
+        escalation_level: { $ref: '#/components/schemas/EscalationLevel' }
+        sla_due_at: { type: string, format: date }
+        sla_breached: { type: boolean }
+        escalation_log: { type: array, items: { $ref: '#/components/schemas/EscalationLog' } }
+        resolution: { $ref: '#/components/schemas/Resolution' }
         created_at: { type: string, format: date-time }
         closed_at: { type: string }
     RiskInput:
@@ -1024,6 +1242,8 @@ components:
         due_date: { type: string, format: date }
         mitigation: { type: string, maxLength: 2000 }
         escalated: { type: boolean }
+        escalation_level: { $ref: '#/components/schemas/EscalationLevel' }
+        escalation_reason: { type: string, maxLength: 2000 }
     RiskUpdate:
       type: object
       properties:
@@ -1031,6 +1251,10 @@ components:
         owner: { type: string, maxLength: 200 }
         due_date: { type: string, format: date }
         mitigation: { type: string, maxLength: 2000 }
+        escalation_level: { $ref: '#/components/schemas/EscalationLevel' }
+        escalation_reason: { type: string, maxLength: 2000 }
+        resolution_note: { type: string, maxLength: 4000 }
+        resolution_evidence_url: { type: string, maxLength: 1000 }
     ChangeRequest:
       type: object
       properties:
@@ -1076,6 +1300,8 @@ components:
         fr_readiness_pct: { type: integer, nullable: true }
         buffer_tech_readiness_pct: { type: integer, nullable: true }
         weekly_reporting_compliance_pct: { type: integer, nullable: true }
+        compliance_readiness_pct: { type: integer, nullable: true }
+        blocker_sla_adherence_pct: { type: integer, nullable: true }
         blockers_open: { type: integer }
         blocker_avg_age_days: { type: integer }
         blocker_max_age_days: { type: integer }
@@ -1111,3 +1337,325 @@ components:
           additionalProperties:
             type: array
             items: { type: string }
+        gate_status_flow:
+          type: array
+          items: { $ref: '#/components/schemas/GateStatus' }
+        deliverable_kinds:
+          type: array
+          items: { $ref: '#/components/schemas/DeliverableKind' }
+        roles:
+          type: array
+          items: { $ref: '#/components/schemas/Role' }
+        permission_matrix:
+          $ref: '#/components/schemas/PermissionMatrix'
+        raci:
+          type: array
+          items: { $ref: '#/components/schemas/RaciEntry' }
+        buffer_controls:
+          type: array
+          items: { $ref: '#/components/schemas/ControlCode' }
+        escalation_sla:
+          type: array
+          items: { $ref: '#/components/schemas/EscalationSla' }
+    # ------------------------------------------------------------------
+    # PRD v1.0 alignment schemas (DEEP-235). Semua kontrak-only kecuali
+    # dinyatakan lain; implementasi menyusul di stage 2/3.
+    # ------------------------------------------------------------------
+    RoleCode:
+      type: string
+      description: Kode peran PRD v1.0, R01–R15 (FR-10).
+      enum: [R01, R02, R03, R04, R05, R06, R07, R08, R09, R10, R11, R12, R13, R14, R15]
+    LegacyRole:
+      type: string
+      description: Peran legacy pra-PRD yang masih harus tetap berfungsi (ADR-005).
+      enum: [operator, pm, approver, auditor]
+    PermissionAction:
+      type: string
+      description: Nama aksi otorisasi. Satu definisi di `lib/auth.js`, dipakai semua route.
+      enum:
+        - read
+        - write_project
+        - pm_action
+        - approver_action
+        - submit_deliverable
+        - approve_deliverable
+        - approve_gate
+        - force_advance
+        - verify_buffer_control
+        - assign_talent
+        - manage_procurement
+        - issue_compliance_evidence
+        - sign_acceptance
+        - raise_blocker
+        - escalate_blocker
+        - resolve_blocker
+        - manage_reports
+        - manage_master_data
+        - decide_change
+        - close_project
+        - reopen_project
+        - delete_project
+    Role:
+      type: object
+      properties:
+        code: { $ref: '#/components/schemas/RoleCode' }
+        name: { type: string }
+        legacy_equivalent: { $ref: '#/components/schemas/LegacyRole' }
+        read_only: { type: boolean }
+        permissions:
+          type: array
+          items: { $ref: '#/components/schemas/PermissionAction' }
+    PermissionMatrix:
+      type: object
+      description: Aksi → daftar peran yang diizinkan (FR-10..FR-14).
+      properties:
+        actions:
+          type: array
+          items: { $ref: '#/components/schemas/PermissionAction' }
+        matrix:
+          type: object
+          additionalProperties:
+            type: array
+            items: { $ref: '#/components/schemas/RoleCode' }
+    RoleCatalog:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Role' }
+        permissions: { $ref: '#/components/schemas/PermissionMatrix' }
+        legacy_mapping:
+          type: object
+          description: Peran legacy → peran PRD (ADR-005 §3).
+          additionalProperties: { $ref: '#/components/schemas/RoleCode' }
+    RaciEntry:
+      type: object
+      properties:
+        gate: { $ref: '#/components/schemas/GateId' }
+        role_code: { $ref: '#/components/schemas/RoleCode' }
+        raci: { type: string, enum: [R, A, C, I] }
+    GateId:
+      type: string
+      enum: [G0, G1, G2A, G2B, G3, G4, G5, CLOSED]
+    GateStatus:
+      type: string
+      description: Status satu gate (FR-07). Reject saat `review` kembali ke `dalam_proses`.
+      enum: [belum_mulai, dalam_proses, review, disetujui]
+    ProjectPath:
+      type: string
+      description: >-
+        FR-04. Diturunkan dari `track` (ADR-005 §2): first_responder → solution_vision,
+        buffer → solution. Read-only di API; `track` tetap satu-satunya field yang ditulis.
+      enum: [solution_vision, solution]
+    ControlCode:
+      type: string
+      description: Kontrol Buffer B1–B4 (FR-02) dan sub-gate s4/sY (FR-03).
+      enum: [B1, B2, B3, B4, s4, sY]
+    ControlStatus:
+      type: string
+      description: Status kontrol opsional; `tidak_berlaku` adalah default selama OQ-03 terbuka.
+      enum: [tidak_berlaku, belum_mulai, dalam_proses, review, disetujui]
+    BufferControl:
+      type: object
+      description: >-
+        Kontrol B1–B4 / sub-gate s4/sY. Berbeda dari `BufferCheck` (8 prasyarat SOP-04 untuk
+        G2B). Optional dan tidak pernah menahan kenaikan gate (DOMAIN-RULES §15).
+      properties:
+        id: { type: integer }
+        project_id: { type: integer }
+        code: { $ref: '#/components/schemas/ControlCode' }
+        kind: { type: string, enum: [buffer, sub_gate] }
+        status: { $ref: '#/components/schemas/ControlStatus' }
+        mandatory: { type: boolean }
+        evidence:
+          type: array
+          items: { $ref: '#/components/schemas/Evidence' }
+        note: { type: string }
+        verified_by: { type: string }
+        updated_at: { type: string, format: date-time }
+    BufferControlInput:
+      type: object
+      required: [status]
+      properties:
+        status: { $ref: '#/components/schemas/ControlStatus' }
+        evidence:
+          type: array
+          items: { $ref: '#/components/schemas/Evidence' }
+        note: { type: string, maxLength: 2000 }
+        verified_by: { type: string, maxLength: 200 }
+    GateRecord:
+      type: object
+      properties:
+        id: { type: integer }
+        project_id: { type: integer }
+        gate: { $ref: '#/components/schemas/GateId' }
+        status: { $ref: '#/components/schemas/GateStatus' }
+        approver_role: { $ref: '#/components/schemas/RoleCode' }
+        decided_by: { type: string }
+        decided_at: { type: string, format: date-time }
+        evidences:
+          type: array
+          items: { $ref: '#/components/schemas/Evidence' }
+        note: { type: string }
+        updated_at: { type: string, format: date-time }
+    GateStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status: { $ref: '#/components/schemas/GateStatus' }
+        approver_role: { $ref: '#/components/schemas/RoleCode' }
+        decided_by: { type: string, maxLength: 200 }
+        note: { type: string, maxLength: 4000 }
+        evidences:
+          type: array
+          items: { $ref: '#/components/schemas/Evidence' }
+    Evidence:
+      type: object
+      description: >-
+        Bukti (FR-17). Minimal salah satu `url` atau `reference_no` harus terisi.
+        Approval tanpa evidence ditolak `422` dengan error `evidence_required`.
+      properties:
+        id: { type: integer }
+        kind: { type: string, enum: [file, link, reference] }
+        url: { type: string, maxLength: 1000 }
+        reference_no: { type: string, maxLength: 200 }
+        checksum: { type: string, maxLength: 128 }
+        uploaded_by: { type: string }
+        uploaded_at: { type: string, format: date-time }
+        note: { type: string, maxLength: 1000 }
+    DeliverableKind:
+      type: string
+      description: Katalog deliverable lintas gate (FR-15). Nilai `compliance_*` melayani FR-33.
+      enum:
+        - project_request
+        - brd
+        - user_story
+        - sad
+        - workforce_plan
+        - ids
+        - idd
+        - security_review
+        - qa_test_result
+        - accessibility_review
+        - compliance_evidence
+        - bast
+        - wbs
+        - project_charter
+        - other
+    DeliverableVersion:
+      type: object
+      description: Satu baris riwayat versi deliverable (FR-16). Append-only.
+      properties:
+        version: { type: string, pattern: '^[0-9]+\.[0-9]+$' }
+        status: { type: string, enum: [belum_mulai, dalam_proses, review, disetujui] }
+        evidence:
+          type: array
+          items: { $ref: '#/components/schemas/Evidence' }
+        created_by: { type: string }
+        created_at: { type: string, format: date-time }
+        note: { type: string }
+    EscalationLevel:
+      type: string
+      enum: [L1, L2, L3, L4]
+    EscalationSla:
+      type: object
+      properties:
+        level: { $ref: '#/components/schemas/EscalationLevel' }
+        target_days: { type: integer, nullable: true }
+        policy: { type: string, enum: [fixed, per_case] }
+        owner_role: { $ref: '#/components/schemas/RoleCode' }
+    EscalationLog:
+      type: object
+      description: Append-only log eskalasi (FR-26).
+      properties:
+        id: { type: integer }
+        level: { $ref: '#/components/schemas/EscalationLevel' }
+        from_level: { $ref: '#/components/schemas/EscalationLevel' }
+        to_level: { $ref: '#/components/schemas/EscalationLevel' }
+        reason: { type: string }
+        actor: { type: string }
+        actor_role: { $ref: '#/components/schemas/RoleCode' }
+        occurred_at: { type: string, format: date-time }
+        sla_due_at: { type: string, format: date }
+        breached: { type: boolean }
+      required: [level, occurred_at]
+    Resolution:
+      type: object
+      properties:
+        status: { type: string, enum: [selesai, dibatalkan] }
+        note: { type: string }
+        decided_by: { type: string }
+        decided_at: { type: string, format: date-time }
+        evidence_url: { type: string }
+    Acceptance:
+      type: object
+      description: BAST / sign-off customer (FR-35, FR-36).
+      properties:
+        project_id: { type: integer }
+        bast_no: { type: string }
+        bast_date: { type: string, format: date }
+        signed_by: { type: string }
+        signed_role: { $ref: '#/components/schemas/RoleCode' }
+        status: { type: string, enum: [draft, menunggu_tanda_tangan, ditandatangani] }
+        result: { type: string, enum: [diterima, diterima_dengan_catatan, ditolak] }
+        evidence:
+          type: array
+          items: { $ref: '#/components/schemas/Evidence' }
+        evaluation: { $ref: '#/components/schemas/ClosureEvaluation' }
+        recorded_at: { type: string, format: date-time }
+    AcceptanceInput:
+      type: object
+      required: [bast_no, bast_date, result]
+      properties:
+        bast_no: { type: string, maxLength: 200 }
+        bast_date: { type: string, format: date }
+        signed_by: { type: string, maxLength: 200 }
+        status: { type: string, enum: [draft, menunggu_tanda_tangan, ditandatangani] }
+        result: { type: string, enum: [diterima, diterima_dengan_catatan, ditolak] }
+        evidence:
+          type: array
+          items: { $ref: '#/components/schemas/Evidence' }
+        evaluation: { $ref: '#/components/schemas/ClosureEvaluation' }
+    ClosureEvaluation:
+      type: object
+      properties:
+        lessons_learned: { type: string }
+        evaluation_notes: { type: string }
+        reopen_count: { type: integer }
+    VendorCategory:
+      type: string
+      enum: [penyedia_tunggal, penunjukan_langsung, terbatas, terbuka, tidak_berlaku]
+    TenderStatus:
+      type: string
+      enum: [belum_mulai, persiapan, pengumuman, evaluasi, penetapan, selesai, gagal, tidak_berlaku]
+    ContractType:
+      type: string
+      description: >-
+        Enum ternormalisasi FR-32. Peta ke label legacy `procurement_doc`:
+        spks→PKDF, po→Justifikasi Kontrak Lumsum, spb_new_item→Surat Pesanan dengan new item,
+        spb_tanpa_new_item→Surat Pesanan tanpa new item.
+      enum: [spks, po, spb_new_item, spb_tanpa_new_item]
+    DataClassification:
+      type: string
+      description: Klasifikasi data untuk kepatuhan PDP (FR-34).
+      enum: [publik, internal, terbatas, rahasia]
+    ComplianceEvidence:
+      type: object
+      description: Bukti kepatuhan QA/security/accessibility/PDP (FR-33, FR-34).
+      properties:
+        id: { type: integer }
+        project_id: { type: integer }
+        gate: { $ref: '#/components/schemas/GateId' }
+        kind:
+          type: string
+          enum: [qa_test_result, security_test_result, accessibility_review, pdp_assessment, compliance_evidence]
+        status: { type: string, enum: [belum_mulai, dalam_proses, review, disetujui] }
+        evidence:
+          type: array
+          items: { $ref: '#/components/schemas/Evidence' }
+        reviewer_role: { $ref: '#/components/schemas/RoleCode' }
+        reviewed_by: { type: string }
+        reviewed_at: { type: string, format: date-time }
+        data_classification: { $ref: '#/components/schemas/DataClassification' }
+        pdp_notes: { type: string }
+        note: { type: string }
