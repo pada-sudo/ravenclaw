@@ -5,6 +5,7 @@ import {
   percent
 } from '../public/modules/utils.js';
 import { getRoute, onRouteChange, setParams } from '../public/modules/router.js';
+import { stepper, kpiBar, tableScroll } from '../public/modules/components.js';
 
 describe('utils', () => {
   it('esc escapes HTML', () => {
@@ -105,6 +106,35 @@ describe('router', () => {
     globalThis.history = { replaceState: (_state, _title, url) => replaced.push(url) };
     setParams({ gate: 'G1', tab: 'raid' });
     assert.deepEqual(replaced, []);
+  });
+});
+
+describe('components', () => {
+  it('kpiBar omits the bar for count metrics', () => {
+    assert.equal(kpiBar(null), '');
+    assert.equal(kpiBar(undefined), '');
+  });
+
+  it('kpiBar exposes a labelled progressbar', () => {
+    const html = kpiBar(80, 'Kesiapan administratif');
+    assert.match(html, /role="progressbar"/);
+    assert.match(html, /aria-label="Kesiapan administratif"/);
+    assert.match(html, /aria-valuenow="80"/);
+    assert.match(html, /aria-valuemin="0"/);
+    assert.match(html, /aria-valuemax="100"/);
+  });
+
+  it('stepper renders a tablist with roving tabindex on the selected gate', () => {
+    const html = stepper({ gates: ['G0', 'G1'], current: 'G0', selected: 'G1' });
+    assert.match(html, /role="tablist"/);
+    assert.match(html, /id="gate-tab-G0"[^>]*aria-selected="false"[^>]*tabindex="-1"/);
+    assert.match(html, /id="gate-tab-G1"[^>]*aria-selected="true"[^>]*tabindex="0"/);
+    assert.match(html, /aria-controls="gateDetail"/);
+  });
+
+  it('tableScroll names its scroll region', () => {
+    assert.match(tableScroll('<table></table>', 'Tabel RACI'), /aria-label="Tabel RACI"/);
+    assert.match(tableScroll('<table></table>'), /aria-label="Tabel data"/);
   });
 });
 

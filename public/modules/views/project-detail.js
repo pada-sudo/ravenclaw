@@ -3,9 +3,10 @@ import { $, $$, esc, fmt, daysLeft, filled, weekNumber, safeUrl, isSafeUrl } fro
 import { stateBox, STATE, toast } from '../state.js';
 import { getContent } from '../content.js';
 import { getRoute, setParams, navigate } from '../router.js';
-import { gateBadge, trackBadge, statusBadge, kindBadge, badge, modal, confirmDialog, projectForm, safeLink, stepper, tableScroll } from '../components.js';
+import { gateBadge, trackBadge, statusBadge, kindBadge, badge, modal, confirmDialog, projectForm, safeLink, stepper, tableScroll, bindTablist } from '../components.js';
 import { openEdit } from './projects.js';
 
+const TABS = ['report', 'raid', 'cr', 'log'];
 const DELIV_STATUS_LABELS = { belum_mulai: 'Belum mulai', dalam_proses: 'Dalam proses', review: 'Review', disetujui: 'Disetujui' };
 const BUDGET_LABELS = { belum_diajukan: 'Belum diajukan', diajukan: 'Diajukan', disetujui: 'Disetujui & tersedia' };
 const ONB_LABELS = { belum_mulai: 'Belum mulai', berjalan: 'Sedang berjalan', selesai: 'Selesai' };
@@ -33,8 +34,8 @@ export async function renderProject(container) {
   const gatePath = content.gates.gates?.[p.track] || [];
   const gateLabels = content.gates.labels;
   const gateDesc = content.gates.descriptions;
-  const shownGate = params.get('gate') || p.gate;
-  const shownTab = params.get('tab') || 'report';
+  const shownGate = gatePath.includes(params.get('gate')) ? params.get('gate') : p.gate;
+  const shownTab = TABS.includes(params.get('tab')) ? params.get('tab') : 'report';
 
   const proc = data.procurement || {};
   const procWarn = proc.warning ? `<div class="alert red" role="alert"><b>Pengingat tenggat pengadaan</b>${esc(proc.warning)}</div>` : '';
@@ -79,29 +80,38 @@ export async function renderProject(container) {
     <div class="card"><h2>Riwayat Proses per Gate</h2>
       <p class="small muted">Pilih gate pada bagan di atas untuk melihat kriteria, kesiapan dan jejak aktivitasnya. Data tiap gate bisa diubah sesuai kebutuhan proyek.</p>
       <button class="btn sm" id="btnGateEdit">Edit gate ${shownGate === 'CLOSED' ? 'Selesai' : shownGate}</button>
-      <div id="gateDetail" style="margin-top:12px"></div></div>
+      <div id="gateDetail" role="tabpanel" aria-labelledby="gate-tab-${esc(shownGate)}" style="margin-top:12px"></div></div>
     ${bpomPanel}
     ${advanceBox}
     ${deliverables}${bufferChecks}
     <div class="tabs" role="tablist" aria-label="Tab detail proyek">
-      <button type="button" class="tab ${shownTab === 'report' ? 'active' : ''}" data-tab="report" role="tab" aria-selected="${shownTab === 'report' ? 'true' : 'false'}">Laporan Mingguan (${data.reports.length})</button>
-      <button type="button" class="tab ${shownTab === 'raid' ? 'active' : ''}" data-tab="raid" role="tab" aria-selected="${shownTab === 'raid' ? 'true' : 'false'}">RAID / Risiko &amp; Blocker (${data.risks.length})</button>
-      <button type="button" class="tab ${shownTab === 'cr' ? 'active' : ''}" data-tab="cr" role="tab" aria-selected="${shownTab === 'cr' ? 'true' : 'false'}">Change Request (${data.changes.length})</button>
-      <button type="button" class="tab ${shownTab === 'log' ? 'active' : ''}" data-tab="log" role="tab" aria-selected="${shownTab === 'log' ? 'true' : 'false'}">Log Aktivitas</button>
+      <button type="button" class="tab ${shownTab === 'report' ? 'active' : ''}" id="tab-report" data-tab="report" role="tab" aria-controls="tabPanel" aria-selected="${shownTab === 'report' ? 'true' : 'false'}" tabindex="${shownTab === 'report' ? 0 : -1}">Laporan Mingguan (${data.reports.length})</button>
+      <button type="button" class="tab ${shownTab === 'raid' ? 'active' : ''}" id="tab-raid" data-tab="raid" role="tab" aria-controls="tabPanel" aria-selected="${shownTab === 'raid' ? 'true' : 'false'}" tabindex="${shownTab === 'raid' ? 0 : -1}">RAID / Risiko &amp; Blocker (${data.risks.length})</button>
+      <button type="button" class="tab ${shownTab === 'cr' ? 'active' : ''}" id="tab-cr" data-tab="cr" role="tab" aria-controls="tabPanel" aria-selected="${shownTab === 'cr' ? 'true' : 'false'}" tabindex="${shownTab === 'cr' ? 0 : -1}">Change Request (${data.changes.length})</button>
+      <button type="button" class="tab ${shownTab === 'log' ? 'active' : ''}" id="tab-log" data-tab="log" role="tab" aria-controls="tabPanel" aria-selected="${shownTab === 'log' ? 'true' : 'false'}" tabindex="${shownTab === 'log' ? 0 : -1}">Log Aktivitas</button>
     </div>
-    <div id="tabPanel"></div>`;
+    <div id="tabPanel" role="tabpanel" aria-labelledby="tab-${esc(shownTab)}"></div>`;
 
   const tabs = { report: renderTabReport, raid: renderTabRaid, cr: renderTabCR, log: renderTabLog };
   const panel = $('#tabPanel');
+  let currentGate = shownGate;
+  let currentTab = shownTab;
 
   function showTab(name) {
-    $$('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
-    $$('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.tab === name ? 'true' : 'false'));
+    currentTab = name;
+    $$('.tab').forEach(t => {
+      const active = t.dataset.tab === name;
+      t.classList.toggle('active', active);
+      t.setAttribute('aria-selected', active ? 'true' : 'false');
+      t.tabIndex = active ? 0 : -1;
+    });
+    panel.setAttribute('aria-labelledby', `tab-${name}`);
     tabs[name](panel, data, id);
     bindRowActions(id, p);
-    updateParams({ gate: shownGate, tab: name });
+    updateParams({ gate: currentGate, tab: name });
   }
   $$('.tab').forEach(t => t.onclick = () => showTab(t.dataset.tab));
+  bindTablist($('.tabs'));
 
   function updateParams(base) {
     setParams(base);
@@ -109,10 +119,16 @@ export async function renderProject(container) {
 
   const gateDetail = $('#gateDetail');
   function showGate(g) {
-    updateParams({ gate: g, tab: shownTab });
+    currentGate = g;
+    updateParams({ gate: g, tab: currentTab });
     gateDetail.innerHTML = renderGateDetail({ g, p, data, gatePath, gateLabels, gateDesc, content });
-    $$('.step').forEach(s2 => s2.classList.toggle('sel', s2.dataset.gate === g));
-    $$('.step').forEach(s2 => s2.setAttribute('aria-selected', s2.dataset.gate === g ? 'true' : 'false'));
+    gateDetail.setAttribute('aria-labelledby', `gate-tab-${g}`);
+    $$('.step').forEach(s2 => {
+      const on = s2.dataset.gate === g;
+      s2.classList.toggle('sel', on);
+      s2.setAttribute('aria-selected', on ? 'true' : 'false');
+      s2.tabIndex = on ? 0 : -1;
+    });
     const editBtn = $('#btnGateEdit');
     if (editBtn) {
       editBtn.textContent = `Edit gate ${g === 'CLOSED' ? 'Selesai' : g}`;
@@ -120,10 +136,12 @@ export async function renderProject(container) {
     }
   }
   $$('.step').forEach(s2 => s2.onclick = () => showGate(s2.dataset.gate));
+  bindTablist($('.stepper'));
   showGate(shownGate);
 
-  $('#btnEdit').onclick = () => { openEdit(p); };
-  $('#btnFinish').onclick = () => {
+  $('#btnEdit').onclick = () => { openEdit(p, refreshProject); };
+  const finishBtn = $('#btnFinish');
+  if (finishBtn) finishBtn.onclick = () => {
     modal({
       title: `Tutup proyek ${p.code}`,
       submitLabel: 'Tandai selesai',
@@ -399,9 +417,13 @@ function bindRowActions(id, p) {
   });
 }
 
-function refreshProject() {
+async function refreshProject() {
   const main = $('#main');
-  if (main) renderProject(main);
+  if (!main) return;
+  const scrollY = window.scrollY;
+  await renderProject(main);
+  // Re-rendering replaces the whole view; keep the reader where they were.
+  window.scrollTo(0, scrollY);
 }
 
 function renderTabReport(panelEl, data, id) {

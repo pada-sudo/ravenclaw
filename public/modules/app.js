@@ -16,9 +16,25 @@ async function init() {
   await loadContent();
   contentLoaded = true;
   wireLogout();
+  wireRejectionFeedback();
   currentUser = await getSession();
   if (!currentUser) return showLogin();
   showApp();
+}
+
+// Action handlers cannot catch everything; surface leftover failures instead of
+// leaving the user with a UI that silently did nothing.
+function wireRejectionFeedback() {
+  window.addEventListener('unhandledrejection', event => {
+    event.preventDefault();
+    if (event.reason?.status === 401) {
+      currentUser = null;
+      showLogin();
+      toast('Sesi berakhir. Silakan masuk kembali.', 'error');
+      return;
+    }
+    toast(event.reason?.message || 'Terjadi kesalahan.', 'error');
+  });
 }
 
 function showLogin() {
@@ -66,7 +82,8 @@ async function render() {
                    path.startsWith('/reference') && a.hash === '#/reference' ||
                    path.startsWith('/project/') && a.hash === '#/projects';
     a.classList.toggle('active', active);
-    a.setAttribute('aria-current', active ? 'page' : 'false');
+    if (active) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
   });
 
   if (!currentUser) return;

@@ -105,14 +105,15 @@ function openIntake() {
   });
 }
 
-export function openEdit(p) {
+export function openEdit(p, onSaved) {
+  if (!onSaved) onSaved = () => renderProjects($('#main'));
   modal({
     title: 'Edit Data Proyek',
     body: projectForm(p),
     onSubmit: async (data, close) => {
       await api(`/api/projects/${p.id}`, 'PUT', data);
       close();
-      renderProjects($('#main'));
+      onSaved();
       toast('Data proyek disimpan.');
     }
   });

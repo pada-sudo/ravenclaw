@@ -21,7 +21,7 @@ export function renderLogin(main, onSuccess) {
         <div class="login-card">
           <h1>Masuk</h1>
           <p class="muted">Gunakan akun peran Anda untuk mengakses RavenClaw.</p>
-          <form id="loginForm" novalidate>
+          <form id="loginForm">
             <div class="form-grid">
               <div><label for="lg_user">Username</label><input id="lg_user" name="username" autocomplete="username" required autofocus></div>
               <div><label for="lg_pass">Kata sandi</label><input id="lg_pass" name="password" type="password" autocomplete="current-password" required></div>
@@ -32,7 +32,7 @@ export function renderLogin(main, onSuccess) {
           <div class="demo-chips">
             <p>Akun demo — klik sekali untuk isi</p>
             <div role="group" aria-label="Akun demo">
-              ${DEMO_ACCOUNTS.map(a => `<button type="button" class="demo-chip" data-demo-user="${a.username}" data-demo-pass="${a.username}" title="Masuk sebagai ${a.label}">${a.label}</button>`).join('')}
+              ${DEMO_ACCOUNTS.map(a => `<button type="button" class="demo-chip" data-demo-user="${a.username}" data-demo-pass="${a.username}" title="Isi kredensial ${a.label}">${a.label}</button>`).join('')}
             </div>
           </div>
         </div>
@@ -55,6 +55,7 @@ export function renderLogin(main, onSuccess) {
     e.preventDefault();
     errorBox.hidden = true;
     submit.disabled = true;
+    submit.textContent = 'Memasukkan…';
     try {
       const res = await login(
         form.username.value.trim(),
@@ -68,6 +69,7 @@ export function renderLogin(main, onSuccess) {
       errorBox.textContent = message;
       errorBox.hidden = false;
       submit.disabled = false;
+      submit.textContent = 'Masuk';
     }
   });
 }

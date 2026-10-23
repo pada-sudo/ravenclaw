@@ -33,7 +33,7 @@ export async function renderDashboard(container) {
     { l: 'Kepatuhan laporan mingguan', v: kpis.weekly_reporting_compliance_pct === null ? '—' : kpis.weekly_reporting_compliance_pct + '%', d: 'laporan diterima 7 hari terakhir', p: kpis.weekly_reporting_compliance_pct },
     { l: 'Blocker terbuka', v: String(kpis.blockers_open), d: `rata-rata umur ${kpis.blocker_avg_age_days} hari · max ${kpis.blocker_max_age_days} hari`, p: null },
     { l: 'Kesiapan transisi', v: kpis.transition_ready_pct === null ? '—' : kpis.transition_ready_pct + '%', d: 'talent definitif terencana sebelum bridging berakhir', p: kpis.transition_ready_pct },
-  ].map(k => `<div class="kpi"><div class="l">${esc(k.l)}</div><div class="v">${esc(k.v)}</div><div class="d">${esc(k.d)}</div>${kpiBar(k.p)}</div>`).join('');
+  ].map(k => `<div class="kpi"><div class="l">${esc(k.l)}</div><div class="v">${esc(k.v)}</div><div class="d">${esc(k.d)}</div>${kpiBar(k.p, k.l)}</div>`).join('');
 
   const pipeline = gateOrder.map(g => {
     const chips = byGate[g].map(p =>

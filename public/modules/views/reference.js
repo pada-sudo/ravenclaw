@@ -1,4 +1,5 @@
 import { esc } from '../utils.js';
+import { tableScroll } from '../components.js';
 import { getContent } from '../content.js';
 
 export function renderReference(container) {
@@ -36,20 +37,20 @@ export function renderReference(container) {
       </ul></div>
 
     <div class="card"><h2>Gate G0–G5</h2>
-      <table><thead><tr><th>Gate</th><th>Isi / kriteria</th></tr></thead><tbody>${gateRows}</tbody></table>
+      ${tableScroll(`<table><thead><tr><th>Gate</th><th>Isi / kriteria</th></tr></thead><tbody>${gateRows}</tbody></table>`, 'Tabel gate G0–G5')}
       <p class="small muted">Nama gate G0–G5 dan B1–B4 adalah rancangan kontrol yang diusulkan, bukan nama gate resmi dalam Nota Dinas.</p></div>
 
     <div class="card"><h2>${esc(sop.sop_01.title)}</h2>
       <ol>${sop.sop_01.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>
       <h3>Kontrol waktu pengadaan (sebelum pekerjaan dimulai)</h3>
-      <table><thead><tr><th>Dokumen</th><th>Batas waktu</th></tr></thead><tbody>${sop01proc}</tbody></table></div>
+      ${tableScroll(`<table><thead><tr><th>Dokumen</th><th>Batas waktu</th></tr></thead><tbody>${sop01proc}</tbody></table>`, 'Tabel kontrol waktu pengadaan')}</div>
 
     <div class="card"><h2>${esc(sop.sop_02.title)}</h2>${listItems(sop.sop_02.items)}
       <p class="small muted">${esc(sop.sop_02.note)}</p></div>
 
     <div class="card"><h2>${esc(sop.sop_03.title)}</h2>
       <p class="small muted">${esc(sop.sop_03.description)}</p>
-      <table><thead><tr><th>Deliverable</th><th>Penyusun</th></tr></thead><tbody>${sop03rows}</tbody></table></div>
+      ${tableScroll(`<table><thead><tr><th>Deliverable</th><th>Penyusun</th></tr></thead><tbody>${sop03rows}</tbody></table>`, 'Tabel deliverable SOP-03')}</div>
 
     <div class="card"><h2>${esc(sop.sop_04.title)}</h2>${listItems(sop.sop_04.items)}
       <p class="small muted">${esc(sop.sop_04.note)}</p></div>
@@ -62,7 +63,7 @@ export function renderReference(container) {
       <div class="alert amber"><b>${esc(sop.sop_07.critical_control)}</b>${sop.sop_07.critical_control_html}</div></div>
 
     <div class="card"><h2>${esc(raci.title)}</h2>
-      <table><thead><tr><th>Aktivitas</th><th>R</th><th>A / approval</th><th>C / I</th></tr></thead><tbody>${raciRows}</tbody></table>
+      ${tableScroll(`<table><thead><tr><th>Aktivitas</th><th>R</th><th>A / approval</th><th>C / I</th></tr></thead><tbody>${raciRows}</tbody></table>`, 'Tabel RACI')}
       <p class="small muted">${esc(raci.note)}</p></div>
 
     <div class="card"><h2>${esc(kpi.title)}</h2><ul>${kpiItems}</ul></div>

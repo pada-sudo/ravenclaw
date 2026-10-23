@@ -21,21 +21,17 @@ export function stateBox({ state, error, emptyText, children }) {
 }
 
 const toastRegion = () => document.getElementById('toast-region');
-let toastTimer;
+const TOAST_DURATION_MS = 5000;
 
 export function toast(message, type = 'info') {
   const region = toastRegion();
   if (!region) return;
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
-  el.setAttribute('role', 'status');
-  el.setAttribute('aria-live', 'polite');
   el.textContent = message;
   region.appendChild(el);
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => {
-    region.innerHTML = '';
-  }, 5000);
+  // Each toast expires on its own so a new message never cuts an earlier one short.
+  setTimeout(() => el.remove(), TOAST_DURATION_MS);
 }
 
 export function showError(message) {

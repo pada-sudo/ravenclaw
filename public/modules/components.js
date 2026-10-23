@@ -17,7 +17,7 @@ function trapFocus(modalEl) {
   modalEl.addEventListener('keydown', modalEl._trapHandler);
 }
 
-export function modal({ title, body, onSubmit, submitLabel = 'Simpan', onClose }) {
+export function modal({ title, body, onSubmit, submitLabel = 'Simpan', onClose, submitClass = 'btn' }) {
   if ($('.overlay')) return;
   lastFocusedElement = document.activeElement;
   const ov = document.createElement('div');
@@ -27,10 +27,13 @@ export function modal({ title, body, onSubmit, submitLabel = 'Simpan', onClose }
   ov.setAttribute('aria-labelledby', 'modal-title');
   ov.innerHTML = `<div class="modal"><h2 id="modal-title">${esc(title)}</h2><form id="modalForm">${body}
     <div class="actions"><button type="button" class="btn ghost" id="mCancel">Batal</button>
-    <button type="submit" class="btn">${esc(submitLabel)}</button></div></form></div>`;
+    <button type="submit" class="${esc(submitClass)}">${esc(submitLabel)}</button></div></form></div>`;
   document.body.appendChild(ov);
+  document.body.classList.add('modal-open');
   focusTrapElement = ov.querySelector('.modal');
   trapFocus(focusTrapElement);
+
+  const submitBtn = ov.querySelector('button[type="submit"]');
 
   function close() {
     ov.removeEventListener('keydown', ov._keyHandler);
@@ -38,6 +41,7 @@ export function modal({ title, body, onSubmit, submitLabel = 'Simpan', onClose }
       focusTrapElement.removeEventListener('keydown', focusTrapElement._trapHandler);
     }
     ov.remove();
+    document.body.classList.remove('modal-open');
     focusTrapElement = null;
     if (lastFocusedElement) lastFocusedElement.focus();
     if (onClose) onClose();
@@ -49,11 +53,18 @@ export function modal({ title, body, onSubmit, submitLabel = 'Simpan', onClose }
   ov.onclick = e => { if (e.target === ov) close(); };
   ov.querySelector('#modalForm').onsubmit = async e => {
     e.preventDefault();
+    if (submitBtn.disabled) return;
+    submitBtn.disabled = true;
     const fd = new FormData(e.target);
     const data = {};
     fd.forEach((v, k) => { data[k] = v; });
     e.target.querySelectorAll('input[type=checkbox][data-send]').forEach(cb => { data[cb.name] = cb.checked ? 1 : 0; });
-    try { await onSubmit(data, close); } catch (err) { showModalError(ov, err.message); }
+    try {
+      await onSubmit(data, close);
+    } catch (err) {
+      submitBtn.disabled = false;
+      showModalError(ov, err.message);
+    }
   };
   return ov;
 }
@@ -64,7 +75,9 @@ function showModalError(ov, message) {
     errBox = document.createElement('div');
     errBox.className = 'alert red modal-error';
     errBox.setAttribute('role', 'alert');
-    ov.querySelector('.modal').insertBefore(errBox, ov.querySelector('.actions'));
+    errBox.tabIndex = -1;
+    const form = ov.querySelector('#modalForm');
+    form.insertBefore(errBox, form.querySelector('.actions'));
   }
   errBox.textContent = message || 'Terjadi kesalahan';
   errBox.focus();
@@ -75,6 +88,7 @@ export function confirmDialog({ title, message, onConfirm, confirmLabel = 'Ya, l
     title,
     body: `<p class="small">${esc(message)}</p>`,
     submitLabel: confirmLabel,
+    submitClass: danger ? 'btn danger-solid' : 'btn',
     onSubmit: async (_, close) => { await onConfirm(); close(); },
     onClose: () => {}
   });
@@ -129,14 +143,15 @@ export function safeLink(href, text, cls = 'link') {
   return `<a class="${esc(cls)}" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(text || url)}</a>`;
 }
 
-export function kpiBar(pct) {
-  if (pct === null || pct === undefined) return '<div class="bar"><i style="width:0"></i></div>';
+export function kpiBar(pct, label) {
+  if (pct === null || pct === undefined) return '';
   const cls = pct >= 80 ? '' : pct >= 50 ? 'warn' : 'bad';
-  return `<div class="bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i class="${cls}" style="width:${pct}%"></i></div>`;
+  const ariaLabel = label ? ` aria-label="${esc(label)}"` : '';
+  return `<div class="bar" role="progressbar"${ariaLabel} aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i class="${cls}" style="width:${pct}%"></i></div>`;
 }
 
-export function tableScroll(htmlTable) {
-  return `<div class="table-scroll" tabindex="0" role="region" aria-label="Tabel data">${htmlTable}</div>`;
+export function tableScroll(htmlTable, label = 'Tabel data') {
+  return `<div class="table-scroll" tabindex="0" role="region" aria-label="${esc(label)}">${htmlTable}</div>`;
 }
 
 export function projectForm(p = {}, meta) {
@@ -176,6 +191,26 @@ export function stepper({ gates, current, selected, onSelect, labels, descriptio
     const sel = g === selected ? 'sel' : '';
     const label = labels?.[g] || g;
     const desc = descriptions?.[g] || '';
-    return `<button type="button" class="step ${cls} ${sel}" data-gate="${esc(g)}" role="tab" aria-selected="${g === selected ? 'true' : 'false'}" aria-label="${esc(label)}: ${esc(desc)}" title="${esc(desc)}">${g === 'CLOSED' ? 'SELESAI' : g}</button>${i < gates.length - 1 ? '<span class="arrow" aria-hidden="true">→</span>' : ''}`;
+    return `<button type="button" class="step ${cls} ${sel}" id="gate-tab-${esc(g)}" data-gate="${esc(g)}" role="tab" aria-controls="gateDetail" aria-selected="${g === selected ? 'true' : 'false'}" tabindex="${g === selected ? 0 : -1}" aria-label="${esc(label)}: ${esc(desc)}" title="${esc(desc)}">${g === 'CLOSED' ? 'SELESAI' : g}</button>${i < gates.length - 1 ? '<span class="arrow" aria-hidden="true">→</span>' : ''}`;
   }).join('')}</div>`;
+}
+
+// WAI-ARIA tabs keyboard pattern: arrows move between tabs, Home/End jump to
+// the first/last tab, and activation follows focus.
+export function bindTablist(tablist) {
+  if (!tablist) return;
+  tablist.addEventListener('keydown', event => {
+    const tabs = Array.from(tablist.querySelectorAll('[role="tab"]'));
+    const index = tabs.indexOf(document.activeElement);
+    if (index < 0) return;
+    let next = null;
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (index + 1) % tabs.length;
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = (index - 1 + tabs.length) % tabs.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = tabs.length - 1;
+    if (next === null) return;
+    event.preventDefault();
+    tabs[next].focus();
+    tabs[next].click();
+  });
 }
