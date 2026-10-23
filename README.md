@@ -1,8 +1,6 @@
 # RavenClaw
 
-Aplikasi web untuk mengendalikan workflow bisnis project **DDP Telkom** pada jalur
-**First Responder** dan **Buffer**: gate G0–G5 (termasuk G2A/G2B), SOP-01 s/d SOP-07,
-deliverable FR, prasyarat teknis Buffer, weekly report, RAID, change request, dan kasus khusus BPOM.
+
 
 Aplikasi ini **bukan** sistem ERP/procurement. Fungsinya: mencatat posisi setiap penugasan di
 dalam proses, membuktikan bahwa syarat sebuah gate benar-benar terpenuhi sebelum gate itu naik,
