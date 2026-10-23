@@ -1,0 +1,46 @@
+version = 2
+mode = "default"
+
+[project]
+name = "ravenclaw"
+
+[scan]
+enabled = true
+max_file_bytes = 1000000
+include_tests = false
+extra_excludes = [
+  "node_modules/",
+  "data/",
+  "coverage/",
+  ".forgeguard/reports/",
+]
+duplicate_block_lines = 6
+taint_sources = []
+trusted_sanitizers = []
+
+[focus]
+enabled = true
+max_retries = 3
+no_progress_limit = 2
+auto_poke = true
+max_auto_pokes = 3
+min_confidence = 80
+min_hill_climbability = 80
+
+[policies]
+warnings_block = false
+
+[rules]
+
+[update]
+policy = "auto"
+
+# The suite keeps SQLite state under data/test-*, so a second run against a
+# dirty state fails. Pre-existing repo behaviour, not a gate artefact: reset the
+# ignored test data before running.
+[[commands]]
+name = "test"
+command = "rm -rf data/test-domain data/test-http data/test-security && npm test"
+required = true
+enabled = true
+timeout_seconds = 300
