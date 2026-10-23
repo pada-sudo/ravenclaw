@@ -208,6 +208,94 @@ test('security headers are present on API responses', async () => {
   assert.match(res.headers['cache-control'], /no-store/);
 });
 
+test('POST /api/projects/:id/close rejects non-G5 gate', async () => {
+  await login('pm');
+  const res = await req('POST', '/api/projects/1/close');
+  assert.equal(res.status, 422);
+  assert.match(res.body.error, /hanya boleh ditutup dari gate G5/);
+});
+
+test('POST /api/projects/:id/close requires BAST then succeeds from G5', async () => {
+  await login('approver');
+  const create = await req('POST', '/api/projects', { name: 'HTTP Close G5', project_type: 'new', track: 'first_responder', reason_shared_service: 'r' });
+  assert.equal(create.status, 200);
+  let p = create.body;
+  while (!['G5', 'CLOSED'].includes(p.gate)) {
+    const adv = await req('POST', `/api/projects/${p.id}/advance`, { force: 1, force_reason: 'advance for close test' });
+    assert.equal(adv.status, 200, `advance failed: ${JSON.stringify(adv.body)}`);
+    const get = await req('GET', `/api/projects/${p.id}`);
+    p = get.body.project;
+  }
+  assert.equal(p.gate, 'G5');
+  const noBast = await req('POST', `/api/projects/${p.id}/close`);
+  assert.equal(noBast.status, 422);
+  assert.match(noBast.body.error, /bast_no dan acceptance_evidence/);
+  const close = await req('POST', `/api/projects/${p.id}/close`, {
+    bast_no: 'BAST/2026/001', bast_date: '2026-10-20',
+    acceptance_evidence: 'https://example.com/bast.pdf', closure_evaluation: 'Diterima customer',
+  });
+  assert.equal(close.status, 200);
+  assert.equal(close.body.gate, 'CLOSED');
+  assert.equal(close.body.status, 'closed');
+  const after = await req('GET', `/api/projects/${p.id}`);
+  assert.equal(after.body.project.bast_no, 'BAST/2026/001');
+  assert.equal(after.body.project.bast_date, '2026-10-20');
+  assert.equal(after.body.project.acceptance_evidence, 'https://example.com/bast.pdf');
+});
+
+test('project tracks the PRD deliverable types (FR-15)', async () => {
+  await login('auditor');
+  const prj = await req('GET', '/api/projects/2');
+  const names = prj.body.deliverables.map(d => d.name);
+  for (const expected of ['Project Request', 'User Story', 'Security Review', 'Acceptance (BAST)']) {
+    assert.ok(names.includes(expected), `missing deliverable type: ${expected}`);
+  }
+  assert.equal(prj.body.deliverables.find(d => d.name === 'User Story').required, 0);
+});
+
+test('deliverable version increments on each update (FR-16)', async () => {
+  await login('operator');
+  const created = await req('POST', '/api/projects/2/deliverables', { name: 'Versioned Doc', owner_role: 'BA' });
+  assert.equal(created.status, 200);
+  const find = async () => (await req('GET', '/api/projects/2')).body.deliverables.find(x => x.name === 'Versioned Doc');
+  const v1 = await find();
+  assert.equal(v1.version, 1);
+  await req('PUT', `/api/projects/2/deliverables/${v1.id}`, { status: 'dalam_proses' });
+  assert.equal((await find()).version, 2);
+  await req('PUT', `/api/projects/2/deliverables/${v1.id}`, { status: 'review' });
+  assert.equal((await find()).version, 3);
+});
+
+test('PUT deliverable to disetujui requires evidence_url and reviewed_by', async () => {
+  await login('operator');
+  const prj = await req('GET', '/api/projects/2');
+  const d = prj.body.deliverables.find(x => x.status === 'review');
+  assert.ok(d, 'expected a deliverable in review status');
+  const bad = await req('PUT', `/api/projects/2/deliverables/${d.id}`, { status: 'disetujui' });
+  assert.equal(bad.status, 422);
+  assert.match(bad.body.error, /evidence_url dan reviewed_by/);
+  const good = await req('PUT', `/api/projects/2/deliverables/${d.id}`, { status: 'disetujui', evidence_url: 'https://example.com/ev.pdf', reviewed_by: 'Reviewer A' });
+  assert.equal(good.status, 200);
+  assert.equal(good.body.status, 'disetujui');
+  assert.equal(good.body.evidence_url, 'https://example.com/ev.pdf');
+  assert.equal(good.body.reviewed_by, 'Reviewer A');
+});
+
+test('PUT buffer_check to verified requires evidence and verified_by', async () => {
+  await login('operator');
+  const prj = await req('GET', '/api/projects/1');
+  const c = prj.body.buffer_checks.find(x => !x.verified);
+  assert.ok(c, 'expected an unverified buffer check');
+  const bad = await req('PUT', `/api/projects/1/buffer_checks/${c.id}`, { verified: true });
+  assert.equal(bad.status, 422);
+  assert.match(bad.body.error, /evidence dan verified_by/);
+  const good = await req('PUT', `/api/projects/1/buffer_checks/${c.id}`, { verified: true, evidence: 'doc.pdf', verified_by: 'Verifier B' });
+  assert.equal(good.status, 200);
+  assert.equal(good.body.verified, 1);
+  assert.equal(good.body.evidence, 'doc.pdf');
+  assert.equal(good.body.verified_by, 'Verifier B');
+});
+
 test('rate limit returns 429 after many unauthenticated requests', async () => {
   await logout();
   let hit429 = false;

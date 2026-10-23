@@ -279,7 +279,7 @@ paths:
         '429': { $ref: '#/components/responses/RateLimit' }
   /api/projects/{id}/close:
     post:
-      summary: Tandai proyek selesai
+      summary: Tandai proyek selesai (wajib gate G5 + BAST)
       operationId: closeProject
       security:
         - sessionCookie: []
@@ -288,6 +288,18 @@ paths:
           name: id
           required: true
           schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [bast_no, acceptance_evidence]
+              properties:
+                bast_no: { type: string, maxLength: 200 }
+                bast_date: { type: string, format: date }
+                acceptance_evidence: { type: string, maxLength: 1000 }
+                closure_evaluation: { type: string, maxLength: 4000 }
       responses:
         '200':
           description: Proyek ditutup.
@@ -299,9 +311,13 @@ paths:
                   ok: { type: boolean }
                   gate: { type: string }
                   status: { type: string }
+                  bast_no: { type: string }
+                  bast_date: { type: string }
+                  acceptance_evidence: { type: string }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
         '429': { $ref: '#/components/responses/RateLimit' }
   /api/projects/{id}/reopen:
     post:
@@ -827,6 +843,10 @@ components:
         bpom_case: { type: integer }
         definitive_plan: { type: string }
         notes: { type: string }
+        bast_no: { type: string }
+        bast_date: { type: string, format: date }
+        acceptance_evidence: { type: string }
+        closure_evaluation: { type: string }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
         deleted_at: { type: string, format: date-time }
@@ -905,6 +925,7 @@ components:
         due_date: { type: string, format: date }
         updated_at: { type: string, format: date-time }
         required: { type: integer }
+        version: { type: integer }
     DeliverableInput:
       type: object
       required: [name]

@@ -6,7 +6,7 @@ const path = require('node:path');
 
 require('./lib/db');
 const { buildRoutes, resFor } = require('./lib/routes');
-const { FR_DELIVERABLES, BUFFER_CHECKS, ApiError } = require('./lib/domain');
+const { FR_DELIVERABLES, PRD_EXTRA_DELIVERABLES, BUFFER_CHECKS, ApiError } = require('./lib/domain');
 const { db, withTx, logEvent, now, s } = require('./lib/db');
 const {
   getRequestId, securityHeaders, requireSameOrigin,
@@ -140,6 +140,7 @@ function seed() {
     const [name, role] = FR_DELIVERABLES[i];
     dIns.run(p2, name, role, frStatuses[i], '', '', '', t, 1);
   }
+  for (const [name, role] of PRD_EXTRA_DELIVERABLES) dIns.run(p2, name, role, 'belum_mulai', '', '', '', t, 0);
 
   const p3 = db.prepare("SELECT id FROM projects WHERE code = 'PRJ-2026-003'").get().id;
   db.prepare(`INSERT INTO risks (project_id, kind, title, description, impact, owner, due_date, mitigation, status, escalated, created_at)

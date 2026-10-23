@@ -4,7 +4,7 @@ process.env.DATA_DIR = require('node:path').join(__dirname, '..', 'data', 'test-
 
 const assert = require('node:assert');
 const test = require('node:test');
-const { gateGaps, validateProjectInput, ApiError, FR_DELIVERABLES, BUFFER_CHECKS } = require('../lib/domain');
+const { gateGaps, validateProjectInput, ApiError, FR_DELIVERABLES, BUFFER_CHECKS, daysBetween } = require('../lib/domain');
 
 test('gateGaps: G2A first responder rejects when deliverables not all approved', () => {
   const deliverables = FR_DELIVERABLES.map(([name], i) => ({
@@ -76,4 +76,17 @@ test('gateGaps: G1 first responder requires NDE, budget, and BO/PM', () => {
   assert.equal(result.next, 'G2A');
   assert.ok(result.gaps.some(g => g.includes('NDE permintaan CFU')));
   assert.ok(result.gaps.some(g => g.includes('Anggaran')));
+});
+
+test('daysBetween handles full ISO timestamps', () => {
+  assert.equal(daysBetween('2026-10-20T15:30:00.000Z', '2026-10-23T09:00:00.000Z'), 3);
+});
+
+test('daysBetween still handles plain date strings', () => {
+  assert.equal(daysBetween('2026-10-20', '2026-10-23'), 3);
+});
+
+test('daysBetween returns null for invalid inputs', () => {
+  assert.equal(daysBetween('not-a-date', '2026-10-23'), null);
+  assert.equal(daysBetween('2026-10-20', ''), null);
 });

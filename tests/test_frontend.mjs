@@ -4,7 +4,7 @@ import {
   $, $$, esc, fmt, daysLeft, weekNumber, filled, safeUrl, isSafeUrl,
   percent
 } from '../public/modules/utils.js';
-import { getRoute, onRouteChange } from '../public/modules/router.js';
+import { getRoute, onRouteChange, setParams } from '../public/modules/router.js';
 
 describe('utils', () => {
   it('esc escapes HTML', () => {
@@ -89,6 +89,22 @@ describe('router', () => {
     globalThis.location = { hash: '', href: 'http://localhost/' };
     const r = getRoute();
     assert.equal(r.path, '/dashboard');
+  });
+
+  it('setParams updates the hash without firing a re-render', () => {
+    const replaced = [];
+    globalThis.location = { hash: '#/project/42?gate=G1', href: 'http://localhost/#/project/42?gate=G1' };
+    globalThis.history = { replaceState: (_state, _title, url) => replaced.push(url) };
+    setParams({ gate: 'G2A', tab: 'raid' });
+    assert.deepEqual(replaced, ['#/project/42?gate=G2A&tab=raid']);
+  });
+
+  it('setParams is a no-op when the hash is unchanged', () => {
+    const replaced = [];
+    globalThis.location = { hash: '#/project/42?gate=G1&tab=raid', href: 'http://localhost/#/project/42?gate=G1&tab=raid' };
+    globalThis.history = { replaceState: (_state, _title, url) => replaced.push(url) };
+    setParams({ gate: 'G1', tab: 'raid' });
+    assert.deepEqual(replaced, []);
   });
 });
 

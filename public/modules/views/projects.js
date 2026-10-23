@@ -119,13 +119,20 @@ export function openEdit(p) {
 }
 
 function finishProject(id, code) {
-  confirmDialog({
-    title: 'Tandai selesai',
-    message: `Tandai proyek ${code} sebagai SELESAI? Proyek akan keluar dari pipeline aktif dan masuk ke arsip selesai.`,
-    onConfirm: async () => {
-      await api(`/api/projects/${id}/close`, 'POST', {});
+  modal({
+    title: `Tutup proyek ${code}`,
+    submitLabel: 'Tandai selesai',
+    body: `<div class="form-grid">
+      <div><label for="c_bast">Nomor BAST *</label><input id="c_bast" name="bast_no" required></div>
+      <div><label for="c_bast_date">Tanggal BAST</label><input id="c_bast_date" name="bast_date" type="date"></div>
+      <div class="full"><label for="c_ev">Evidence acceptance (URL) *</label><input id="c_ev" name="acceptance_evidence" required></div>
+      <div class="full"><label for="c_eval">Evaluasi penutupan</label><textarea id="c_eval" name="closure_evaluation" rows="2"></textarea></div>
+    </div>`,
+    onSubmit: async (data, close) => {
+      await api(`/api/projects/${id}/close`, 'POST', data);
+      close();
       navigate('/dashboard');
-      toast('Proyek ditandai selesai.');
+      toast('Proyek ditutup dengan BAST.');
     }
   });
 }

@@ -28,5 +28,10 @@ export function onRouteChange(cb) {
 
 export function setParams(params) {
   const { path } = parseRoute();
-  navigate(path, params);
+  const hash = buildHash(path, params);
+  // Update the address bar in place. Assigning location.hash fires hashchange,
+  // which re-renders the whole view and throws the user back to the top; tab and
+  // gate switches already update their own DOM, so no re-render is wanted.
+  if (location.hash === hash) return;
+  history.replaceState(null, '', hash);
 }
