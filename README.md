@@ -268,6 +268,7 @@ Di `docs/use-cases/ddp-project-control/`:
 - `AUDIT-2026-10-22-baseline.md` — audit baseline (temuan A/B/C/D/E) beserta bukti reproduksi.
 - `BASELINE-REQUIREMENTS-2026-10-22.md` — matriks kesesuaian SOP ↔ fitur, 50 kriteria penerimaan, gap register, definisi "pilot siap" (George).
 - `TRACEABILITY-2026-10-22.md` — matriks SOP ↔ fitur ↔ test dengan status terkini per butir (19 LULUS / 29 SEBAGIAN / 18 BELUM).
+- `TRACEABILITY-PRD-2026-10-23.md` — matriks PRD v1.0 (FR-01..FR-37, US-01..US-18, R01..R15, 9 AC, OQ-01..OQ-08) ↔ fitur ↔ test: 6 LULUS / 44 SEBAGIAN / 37 BELUM dari 87 baris, plus pemetaan silang 66 butir SOP lama dan daftar konflik PRD vs implementasi.
 - `PANDUAN-OPERATOR.md`, `PANDUAN-PM.md`, `PANDUAN-APPROVER.md`, `PANDUAN-AUDITOR.md` — langkah tugas per peran.
 - `RUNBOOK-OPERASIONAL.md` — konfigurasi, backup/restore, logging, sesi, drill pemulihan.
 - `RUNBOOK-INSIDEN.md` — gejala → tindakan: layanan mati, database korup, restore, gate naik tanpa bukti.
